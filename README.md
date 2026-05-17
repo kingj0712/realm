@@ -71,7 +71,7 @@ See `WIKI.md` section 10 for the full open-questions list.
 
 ## License
 
-No license declared — source-visible for reference only. If you want to fork or build on this, open an issue and we can discuss.
+[MIT](./LICENSE) — feel free to fork, build on, or borrow ideas.
 
 ## Acknowledgements
 
