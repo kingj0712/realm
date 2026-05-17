@@ -1,0 +1,340 @@
+# Realm — Internal Wiki
+
+A living reference for the project owner and future Claude sessions. Capture decisions, tile capabilities, future ideas, and rationale here so we never re-litigate the same questions. Treat the **Future Ideas** and **Open Questions** sections as durable scratchpads — append to them as new ideas land.
+
+Companion docs: `CLAUDE.md` (build/deploy quickstart for Claude sessions), `\\homeassistant.local\config\CLAUDE.md` (broader HA context).
+
+---
+
+## 1. What Realm Is
+
+Realm is a custom React-based Home Assistant dashboard registered as a `panel_custom` at sidebar slug `/realm`. It's intentionally separate from Lovelace and from the existing `scada-panel` React app. The visual language is full SCADA: dense industrial HMI, dark neutral surfaces, SCADA palette for state semantics, Barlow Condensed + Share Tech Mono typography. Tiles emphasize personality (tank visuals, animated flow, gauges, charts) over flat data tables.
+
+The app starts as a single-pane-of-glass overview and is intended to grow into:
+
+- Interactive floorplans (SVG, sourced from SweetHome3D exports)
+- Per-room and per-equipment deep-dive pages
+- History plots and analytics
+- Eventually replacing the older scada-panel entirely
+
+---
+
+## 2. Architecture Overview
+
+### Source & deploy
+- **Source repo:** local Windows checkout (path varies per machine — author's is `C:\Users\kingj\dev\realm\`).
+- **Build:** Vite library mode → single ES module bundle (`dist/realm.js`).
+- **Deploy:** `npm run deploy` copies the bundle into `\\homeassistant.local\config\www\realm\realm.js` over SMB.
+- **HA serves it** at `/local/realm/realm.js`, which `panel_custom:` in `configuration.yaml` references.
+- After the very first deploy, HA needs a full restart for `panel_custom` to register. Subsequent bundle updates only need a hard browser refresh (devtools → Disable cache, or incognito tab).
+
+### Runtime composition
+- `src/main.tsx` defines `<realm-panel>` as a custom element, attaches Shadow DOM, injects fonts + tokens CSS + component CSS, mounts React into a div inside the shadow root.
+- React 19 + React Router 7 (HashRouter — HA owns the URL above `/realm`).
+- Routes: `/` (Overview — config-driven, editable) and `/components` (static demo of every tile variant).
+
+### State layers
+- **`HassProvider` + `useEntity(id)`** — `useSyncExternalStore`-backed selector hook. Subscribing per-entity avoids full-tree re-renders when HA state mutates constantly.
+- **Mock store (`createMockStore()`)** powers everything today. A `setServiceHandler` callback mutates entities on service calls so toggles/setpoints/sliders feel live without a real HA connection. A `setHistoryProvider` returns cached random-walk series for sparklines/plots.
+- **`LayoutProvider` + `useLayout()`** — owns the dashboard layout, edit mode flag, and selected tile id. Persists to `localStorage` under `realm:layout:overview`.
+
+### Design tokens
+- `src/styles/tokens.css` is the locked variables file (surfaces, type scale, status colors, status background tints for pills, spacing, radii).
+- `src/styles/components.css` holds all component styles (shell, all tile types, edit mode chrome).
+- Both injected into the Shadow DOM via `?inline` imports in `main.tsx`.
+- Fonts: Barlow Condensed + Share Tech Mono + Barlow, loaded once via a `<link>` injected into `document.head` (Shadow DOM children inherit document-level font registrations).
+
+### Why Shadow DOM?
+- Isolates Realm's styling from HA's chrome and from user-installed themes. We fully own the surface inside the panel. The HA theme (`realm_dark.yaml`) governs only the surrounding HA chrome (sidebar, header) so the two read coherently side by side.
+
+---
+
+## 3. Tile Catalog
+
+All 43 tile types. Each tile is a React component that subscribes to its own entities via `useEntity`. Edit-mode adds a serializable config schema in `src/edit/tileRegistry.tsx`.
+
+| Tile | Category | Purpose / Visual |
+|------|----------|------------------|
+| **ValueTile** | Info | Single numeric value + unit. Optional thresholds tint the value (`warn`/`alarm`). |
+| **StatusTile** | Info | Binary entity as a big labeled state (e.g. `OPEN` / `CLOSED`). State→status map configurable. |
+| **AlarmTile** | Info | Active/clear alarm with pulsing outer glow when triggered and `●` indicator dot. |
+| **ToggleTile** | Control | Click to toggle; visual pill switch + ON/OFF label. |
+| **ButtonTile** | Control | Explicit action button with state-aware pill and button label. Defaults to `${domain}.toggle`. |
+| **SetpointTile** | Control | Climate current → target with −/+ adjusters. Mode pill (heat/cool/off). |
+| **SliderTile** | Control | Drag for brightness 0-100; commits `light.turn_on` with `brightness_pct` on release. |
+| **ColorPickerTile** | Control | Hue strip (rainbow gradient) + brightness slider. Commits `rgb_color`. |
+| **TankTile** | Visualization | Vertical tank SVG with animated liquid level. Color follows status thresholds. Tick marks at 25/50/75%. |
+| **GaugeTile** | Visualization | 270° arc gauge. Min/max range, smooth fill animation, thresholds. |
+| **DonutTile** | Visualization | Full radial percentage ring with center label. |
+| **BarTile** | Visualization | Horizontal level meter with min/max scale labels and tinted fill. |
+| **SparklineTile** | Visualization | Current value + mini trend line under it. Line draws in on mount. |
+| **PlotTile** | Visualization | Larger SVG line chart with Y-axis gridlines, axis labels, area fill. Hand-rolled (no chart lib). |
+| **HistoryBarsTile** | Visualization | Vertical bar chart for daily/aggregated history. Reads from history attribute or generated series. |
+| **HeatmapTile** | Visualization | Calendar-style grid colored by intensity (GitHub-contribution-graph style). |
+| **WeatherTile** | Info | Current condition icon + temp hero + humidity/wind/pressure strip + 3-day forecast row. |
+| **CameraTile** | Info | Camera viewport with corner brackets, REC dot pulse, live timestamp. NO-SIGNAL placeholder. |
+| **MediaPlayerTile** | Control | Album art + title/artist + progress + transport. Animated equalizer bars when playing. |
+| **EnergyFlowTile** | Visualization | Animated dashed flow lines from sources (grid/solar/battery) → home. Battery direction reverses on charging. |
+| **ClockTile** | Info | Big mono time + day/date. Minute-aligned by default; optional seconds. |
+| **AreaListTile** | Group | Multiple entities per row, each cell typed (`value` / `binary` / `toggle`). The bedroom-style group tile. |
+| **MultiMetricTile** | Group | Grid of label+value cells in one tile (e.g. boiler Supply/Return/Delta-T/PSI). Per-metric thresholds. |
+| **StatusListTile** | Group | List of binary entities with `●`/`○` symbology and per-row state labels. |
+| **PresenceListTile** | Group | List of people with avatar (initials) and zone state. |
+| **CalendarTile** | Info | Upcoming events from a `calendar.*` entity with day/time + summary. |
+| **TodoListTile** | Info | Checkable items from a `todo.*` entity; clicking toggles status via `todo.update_item`. |
+| **PersonTile** | Info | Single person presence with avatar + zone + colored ring indicator. |
+| **SceneButtonTile** | Control | Large tap-to-activate scene button with flash animation on activation. |
+| **NotificationFeedTile** | Info | Scrollable list of recent notifications with level dot (info/warn/alarm/ok). |
+| **WindCompassTile** | Visualization | Compass rose with rotating arrow + speed/unit center label. |
+| **SunMoonTile** | Visualization | Sunrise/sunset arc with sun position + sunrise/sunset times + moon phase glyph. |
+| **NetworkTile** | Info | Internet status with down/up Mbps and ping. Down arrow = info, up arrow = warn. |
+| **ServerStatsTile** | Info | CPU / RAM / Disk bars with threshold-colored values. |
+| **VacuumTile** | Control | Battery + state with start/stop/dock buttons. Spinner while active. |
+| **BeehiveTile** | Homestead | Weight + temp + humidity with brood-temperature health check. |
+| **IrrigationTile** | Homestead | Per-zone running indicator, click to toggle. |
+| **TrashScheduleTile** | Homestead | Countdown days + next pickup date + type pill. |
+| **GeneratorTile** | Homestead | State pill + fuel bar (color by level) + last run + total runtime. |
+| **MailboxTile** | Homestead | Package count + mail count + last-delivery time. |
+| **TimerTile** | Info | Circular countdown ring with start/pause/cancel; ticks down each second. |
+| **HVACScheduleTile** | Info | 24-hour stepped setpoint timeline with a current-hour cursor. |
+| **ClimateThermostatTile** | Control | Detailed thermostat: current/target+humidity, mode/fan/preset buttons. Boolean props (`showModeButtons`, `showFanButtons`, `showPresetButtons`, `showHumidity`, `showAction`) toggle each section. Use instead of SetpointTile for full control. |
+| **AirPurifierTile** | Control | PM1/2.5/10 + filter life bar + fan preset selector. Animated airflow when active. |
+| **LightFanTile** | Control | Combined ceiling light brightness slider + fan speed selector + direction toggle. |
+| **CurtainTile** | Control | Animated curtain panels that slide based on cover position. Position slider (0-100%) + OPEN/CLOSE buttons. |
+| **NASTile** | Info | Storage donut + read/write throughput + connected users. |
+| **SpeedTestTile** | Info | Down/up/ping with manual RUN TEST trigger (configurable service). |
+| **StarlinkTile** | Info | Throughput + ping + uptime + obstruction bar. |
+| **UDMTile** | Info | UniFi Dream Machine: WAN status, client count, throughput, uptime. |
+| **VehicleTile** | Control | Battery + range + lock/unlock/start/climate quick controls. |
+| **LaundryTile** | Info | Washer + dryer side-by-side with spinning-drum animation when running. Optional `washerExtras` / `dryerExtras` arrays add `{label, entityId}` rows below each appliance (door, mode, time remaining, etc.). |
+| **SankeyTile** | Visualization | Hand-rolled Sankey: sources → consumers, proportional ribbon widths. |
+| **CountdownTile** | Info | D/H/M/S countdown to a target. Optional repeat (daily/weekly/monthly/yearly). |
+| **WeatherRadarTile** | Visualization | Iframe slot for windy/rainviewer; animated radar placeholder when no URL. |
+| **ApplianceTile** | Info | Generic Samsung/SmartThings appliance (cycle, time remaining, temps, door, power). |
+| **HomelabTile** | Info | Multi-host overview with CPU + RAM bars per host. |
+| **BlindsTile** | Control | Blinds descend from top of window, scale with cover position. Smooth CSS-animated SVG matrix transform. |
+| **WeeklyDigestTile** | Info | Pulls weekly digest text from `homestead-hq` (default `http://homestead-hq.local:3000/api/digest/weekly`). Needs CORS on the server. |
+| **EntityDetailModal** | (infra) | Generic detail modal — shows a chart + attributes table for an entity. Wire from any tile's `onClick`. Pattern: `useState(false)` → modal element conditional → onClick on BaseTile. |
+| **HeaderTile** | Misc | Section header text (no BaseTile chrome). Configurable text, optional subtitle, accent underline color (default/ok/warn/alarm/info). Drop above a group of tiles to label that section. Defaults to full width × 40px. |
+
+---
+
+## 4. Edit Mode
+
+### How to use
+1. Open Realm. The Overview is the only config-driven page (Components is a static demo).
+2. Click the pencil icon in the top-right of the header to enter edit mode. The banner appears at the top with `+ ADD TILE`, `RESET`, `DONE` buttons.
+3. **Rearrange:** Grab the `⋮⋮` handle on any tile and drag to a new position. The grid uses `@dnd-kit/sortable`.
+4. **Resize:** Click a tile to open the Inspector. Use the WIDTH preset buttons (`XS`/`SM`/`MD`/`LG`/`XL`/`FULL` = col spans 2/3/4/6/8/12).
+5. **Reassign entities:** Click a tile. In the Inspector, use the Entity field's searchable picker. The list filters by allowed domains for that tile (e.g. only `binary_sensor` for StatusTile).
+6. **Change icon:** Click the icon field's swatch to open the IconPicker (search + grid of available mdi icons).
+7. **Edit multi-entity rows:** For AreaListTile, MultiMetricTile, StatusListTile, IrrigationTile, PresenceListTile — the Rows section has add/remove/reorder controls per entry. AreaListTile rows additionally manage typed cells inside each row.
+8. **Add a tile:** Click `+ ADD TILE` to open the Palette. Pick a category, click a tile type — it appears at the end of the grid with default props, ready to configure.
+9. **Delete a tile:** Inspector → `DELETE TILE` button (red, at the bottom).
+10. **Reset to defaults:** Banner → `RESET`. Confirms first.
+11. Click `DONE` (green) to exit edit mode.
+
+### Layout schema
+```ts
+interface LayoutItem {
+  id: string;       // unique
+  type: string;     // tile registry key, e.g. 'TankTile'
+  colSpan: number;  // 1–12; clamps to grid width at render
+  rowSpan?: number;
+  props: Record<string, unknown>;  // tile-specific config, all JSON-serializable
+}
+```
+
+The `icon` prop is stored as a string name (e.g. `"mdiBarrel"`); the tile registry resolves it to a React element when rendering. This keeps the whole layout JSON-serializable.
+
+### Persistence
+- localStorage key: `realm:layout:overview`.
+- Schema is versioned (`LAYOUT_VERSION`). If the version doesn't match on load, fall back to defaults.
+- Future: sync to HA `frontend.set_user_data` for cross-device.
+
+### Responsive grid
+- Mobile (<600px): 4 columns.
+- Tablet (600–1024px): 8 columns.
+- Desktop (>1024px): 12 columns.
+- A tile with `colSpan: 6` takes 4/8/6 cols at each breakpoint (browser grid clamps to grid width).
+- `grid-auto-flow: dense` packs gaps automatically.
+
+---
+
+## 5. Mock Data Approach
+
+The mock store (`src/hass/MockHass.ts`) ships with ~80 seed entities covering every tile type. It also implements service handlers for the operations tiles actually call: `light.turn_on/turn_off/toggle`, `switch.turn_on/turn_off/toggle`, `climate.set_temperature`, `cover.*`, `media_player.*`, `scene.turn_on`, `todo.update_item`, `vacuum.start/stop/return_to_base`, `timer.start/pause/cancel`.
+
+History (for sparklines, plots, history bars) is generated via a random-walk function that lands exactly at the entity's current state. Cached per entity_id so the line doesn't jitter on unrelated state changes.
+
+When we wire real HA (phase 6+):
+- `main.tsx` reintroduces property setters on the custom element that mirror the injected `hass` object onto the store.
+- A `LiveHassStore` (TBD) implements the same `HassStore` interface but talks to `hass.connection` for state subscriptions and `hass.callService` for actions.
+- `useEntity`, `useHistory`, all tiles, and the edit-mode registry don't change. The swap is a provider change at the App root.
+
+---
+
+## 6. Deploy Workflow
+
+```
+cd C:\Users\kingj\dev\realm
+npm run dev          # local Vite dev server (renders panel in browser without HA)
+npm run build        # tsc --noEmit + Vite library build → dist/realm.js
+npm run deploy       # build + node scripts/deploy.mjs (copies bundle to /config/www/realm/)
+npm run deploy:only  # skip build, just copy existing dist/
+```
+
+After deploy, hard-refresh Realm in the browser. If you've changed `panel_custom:` (added/removed entries), HA needs a full restart.
+
+If the HA theme needs reloading: Developer Tools → YAML → Themes.
+
+---
+
+## 7. Watch-Outs / Gotchas
+
+- **Non-secure context:** HA accessed at `http://homeassistant.local:8123` is non-secure. `crypto.randomUUID()`, `crypto.subtle.*`, and other secure-context-only Web Crypto APIs are unavailable. Use `src/hass/uid.ts` (Math.random fallback) for any non-cryptographic uniqueness needs.
+- **Vite library mode + NODE_ENV:** Library mode doesn't substitute `process.env.NODE_ENV` automatically. `vite.config.ts` does this via `define`. If you ever see `process is not defined` in console, check this.
+- **HA MDC text-field vars:** Older `input-*` theme vars don't reach HA's MD3 text fields. `realm_dark.yaml` sets both old and `--mdc-text-field-*` / `--mdc-select-*` / `--mdc-dialog-*` vars.
+- **Hooks rules:** `useEntity(undefined)` would violate rules of hooks if guarded conditionally. Always call with a string (use `entityId ?? ''` for optionals — store handles missing entities by returning null).
+- **Bundle cache:** Hard refresh doesn't always bypass cached ES module imports for `panel_custom`. Use devtools → Disable cache, or incognito, when iterating.
+- **scada-panel Google Fonts bug:** The older scada-panel JS at `/local/scada-panel/scada-panel.js` does an ES `import` of a Google Fonts CSS URL, which always fails MIME-type check. Shows in console regardless of which panel is open. Pre-existing, not Realm's problem.
+
+---
+
+## 8. Themes
+
+Two themes coexist in `\\homeassistant.local\config\themes\`:
+
+- **`scada_dark.yaml`** — paired with the older scada-panel React app. Navy `#05101e` surfaces.
+- **`realm_dark.yaml`** — paired with Realm. Neutral near-black `#0d0f12` surfaces. SCADA state palette and Barlow Condensed / Share Tech Mono fonts preserved.
+
+Switch in **Settings → Profile → Theme**. Eventually `scada_dark` may be retired when scada-panel is sunset.
+
+---
+
+## 9. Future Ideas (append freely)
+
+Tile concepts not yet built. Add to this list as they come up.
+
+- **PlotTile v2** — multi-series, zoomable, with crosshair tooltip. Probably needs ECharts or uPlot.
+- **MapTile** — leaflet map for device_tracker / GPS entities.
+- **FloorplanTile** — SVG floor plan with overlaid live entity hotspots.
+- **CompassTile (generic)** — bearing-only compass for vehicles, etc.
+- **CounterTile** — generic up-only counter with optional trend arrow.
+- **RingProgressTile** — like Donut but for arbitrary 0-N progress (not %).
+- **DualGaugeTile** — two arcs (e.g. supply + return temp) on one tile.
+- **PhaseDiagramTile** — V/A/PF for electrical phases.
+- **WaterFlowTile** — flow-rate dial for well/cistern.
+- **GreenhouseTile** — temp/humidity/CO2/vent in one composite.
+- **CoopTile** — chicken coop: temp + door state + egg count + light.
+- **SoilZoneTile** — moisture/temp/EC per garden zone.
+- **TideTile** — coastal tide info (for users near a coast).
+- **BirdCamTile** — game cam with recent capture thumbnails.
+- **Sankey/EnergySankey** — energy in/out flow with proportional links.
+- **TopologyTile** — network topology with live status dots.
+- **VoiceTile** — last command + transcript.
+- **MarkdownTile** — free-form notes/markdown.
+- **IframeTile** — embed external dashboards.
+- **NextEventTile** — single biggest upcoming calendar event hero.
+- **FrostWarningTile** — overnight low + frost advisory.
+- **AirQualityTile** — AQI rose with PM2.5/PM10/VOC.
+- **TideCalendarTile** — moon phase + tide schedule combo.
+- **HouseEnergyToday** — kWh used today + cost.
+- **SchedulerTile** — visual editor for automations/schedules.
+
+### Bigger features
+
+- **Multiple dashboards / pages** — beyond Overview, support per-room and per-equipment deep-dives (route + layout per slug).
+- **Floorplans** — Sweet Home 3D SVG exports, with entity hotspots, become its own route at `/realm#/floorplan/:floor`.
+- **Real-time graphs** — proper history view at `/realm#/plot` with date pickers, comparison series.
+- **Notifications inbox** — central feed of HA events with snooze/dismiss.
+- **Sync layout across devices** — write to `frontend.set_user_data` so phone + tablet + wall mount agree.
+- **Tile-level conditional visibility** — hide a tile when an entity is unavailable, or only show alarms when active.
+- **Tile groups / Panels** — a Panel container that wraps tiles in a category-colored top-border frame (like the SCADA Lovelace card's stack-in-card pattern). Useful for grouping related tiles visually.
+- **Undo/redo for edit mode** — track layout history; ⌘Z reverts.
+- **Tile linking** — clicking a tile navigates to its deep-dive page (per-entity history view).
+- **Mobile-tuned tile variants** — some tiles want different visuals on small screens (e.g. PlotTile collapses to sparkline below 600px).
+
+---
+
+## 9.0 Recent rounds — quick changelog
+
+Most recent first. Sections 9.1–9.5 below have round-specific detail.
+
+| Round | Headline shipped |
+|-------|------------------|
+| **9** (current) | Multi-tab system (per-tab layout + alarm config), alarm chips strip, duplicate tile, Inspector + Palette readability pass with text search, Blinds/Curtain position sliders, Thermostat `showX` checkboxes, Laundry `washerExtras`/`dryerExtras`, HeaderTile, switched to `noCompactor` (iOS-style fixed positions, gaps allowed). LAYOUT_VERSION 4. |
+| **8** | Migrated Overview from @dnd-kit/sortable + custom-drag to **react-grid-layout v2**. Explicit `(x, y, w, h)` coordinates per tile. RGL handles drag (via `dragConfig.handle`) and resize (via `resizeConfig`). EditableTile.tsx deprecated; rendering inlined in `Overview.tsx`. LAYOUT_VERSION 3. |
+| **7** | Drag-to-resize handle (bottom-right corner). Base row height dropped to 20px with per-tile `defaultRowSpan`. Inspector HEIGHT preset buttons (XS/SM/MD/LG/XL). Simplified `LightFanTile` to two on/off buttons. New `BlindsTile`. **PlotTile rewritten with ECharts** (interactive hover crosshair + value tooltip). New `WeeklyDigestTile` (fetches homestead-hq at `homestead-hq.local:3000`, needs CORS). `WeatherRadarTile` ships with an empty `iframeUrl` (user sets in inspector). LAYOUT_VERSION 2. |
+| **6** | 14 new tiles (Climate/AirPurifier/LightFan/Curtain/NAS/SpeedTest/Starlink/UDM/Vehicle/Laundry/Sankey/Countdown/WeatherRadar/Appliance/Homelab). CameraTile auto-reads `entity.attributes.entity_picture` with configurable refresh. Drag pixel rounding, weather alignment + overflow fix, HA theme MDC vars for inputs. `TileModal` + `EntityDetailModal` infrastructure shipped (per-tile wiring still pending). |
+| **5** | 20 new tiles (Calendar/Todo/Person/PresenceList/SceneButton/NotificationFeed/WindCompass/SunMoon/Heatmap/Network/ServerStats/Vacuum/Beehive/Irrigation/TrashSchedule/Generator/Mailbox/Timer/HVACSchedule/HistoryBars). Components demo page covers everything. |
+
+## 9.4 Feedback follow-ups (round 6)
+
+Items from this round's feedback:
+- ✅ **Vertical alignment / messy grid** — overview grid now uses `grid-auto-rows: var(--row-height)` (110/120/130px at mobile/tablet/desktop). Each tile has a `defaultRowSpan` in its registry entry (1 for compact, 2 default, 3 for taller charts/lists). Inspector adds **HEIGHT** preset buttons (1-5 rows) so you can tune any individual tile.
+- ✅ **LightFanTile simplified** — now two big on/off buttons (light + fan). Slider + speed picker removed; use `SliderTile` + dedicated fan tile if you want finer control.
+- ✅ **BlindsTile** — new tile, animated blinds descend from the top of the window and scale via SVG matrix transform with CSS transition. Replaces `CurtainTile` in the default layout (CurtainTile is still in the palette for actual curtains).
+- ✅ **ECharts PlotTile** — `PlotTile` now uses ECharts with interactive crosshair tooltip on hover. Bundle grew from ~175KB → ~385KB gzipped (echarts is the bulk). SVG renderer; works inside Shadow DOM.
+- ✅ **WeeklyDigestTile** — new tile, fetches from `http://homestead-hq.local:3000/api/digest/weekly` by default. Accepts JSON (`content`/`text`/`body` field) or plain text. Refreshes every 60 min by default. **Note: homestead-hq must allow CORS** from the HA origin (`http://homeassistant.local:8123`) — add `Access-Control-Allow-Origin: *` or specific origin to its responses. Override `url` in the inspector if your endpoint path differs.
+- ✅ **WeatherRadarTile iframe slot** — ships with empty `iframeUrl` (placeholder visible). Set your own embed URL (windy.com / rainviewer / NOAA) via the inspector.
+- ✅ **Drag/drop improvements** — fractional transforms now rounded to integer pixels; transform transition removed from `.tile`; hover effects suppressed in edit mode.
+- ✅ **CameraTile real feeds** — auto-reads `entity.attributes.entity_picture` when `snapshotUrl` is empty, with configurable `refreshSeconds` polling.
+- 🟡 **Modal popups on individual tiles** — `EntityDetailModal` + `TileModal` + `useDetailModal` pattern shipped (`src/components/tiles/EntityDetailModal.tsx`). **Wiring onto each tile is incremental work** — pattern per tile: `useState` + add `onClick` to `BaseTile` + conditional `<EntityDetailModal entityId=... title=... onClose=... />`. Wire incrementally as bandwidth allows.
+
+## 9.5 Feedback follow-ups (round 5)
+
+Items addressed this round:
+- ✅ Readability — bumped `--type-label`/`--type-label-sm` sizes and lightened the faint slate scale.
+- ✅ Weather tile alignment — hero now `justify-content: center`, forecast cells stack vertically and use `minmax(0, 1fr)` so they don't overflow narrow tiles.
+- ✅ Drag/drop scaling/blur — transform values rounded to integer pixels; transform transition removed from `.tile`; hover effects disabled on tiles during edit mode.
+- ✅ Real camera feeds — CameraTile now auto-reads `entity.attributes.entity_picture` when `snapshotUrl` is empty, with a configurable `refreshSeconds` polling loop.
+- ✅ Detailed thermostat — `ClimateThermostatTile` shipped (use alongside or instead of `SetpointTile`).
+- ✅ Curtain / animated cover — `CurtainTile`.
+- ✅ Air purifier — `AirPurifierTile`.
+- ✅ Light + fan combo — `LightFanTile`.
+- ✅ Countdown — `CountdownTile` with repeat options.
+- ✅ Vehicle — `VehicleTile`.
+- ✅ Laundry with animations — `LaundryTile` (spinning drums via CSS).
+- ✅ Power Sankey — `SankeyTile`.
+- ✅ NAS / Starlink / UDM / SpeedTest — all four shipped.
+- ✅ Weather radar — `WeatherRadarTile` (iframe slot + placeholder).
+- ✅ Samsung appliances — `ApplianceTile` (generic; wires to any appliance entity).
+- ✅ Homelab — `HomelabTile`.
+- ✅ Ideal default Overview layout — `src/edit/defaultLayouts.ts` curates a thoughtful starting arrangement; user customizes from there.
+- ✅ Components demo coverage — every tile (now 57) has a section on `/components`.
+- 🟡 Modal popups on most tiles — `TileModal` infrastructure ships but wiring `onClick → modal` per-tile is the next pass (see section 10).
+- 🟡 Interactive chart hover — deferred (see section 9).
+- 🟡 homestead-hq digest — needs API endpoint + auth details before building.
+- 🟡 Google Calendar — already works via the generic `CalendarTile` pointed at any `calendar.*` HA entity.
+
+## 10. Open Questions / TODOs
+
+Track decisions we've deferred and known issues.
+
+- **Real HA wiring (phase 6+):** Wire main.tsx setters → LiveHassStore. Replace MockHass in App.tsx with the live store, but keep the mock available behind a dev flag for offline iteration.
+- **scada-panel sunset:** When Realm has feature parity, retire `scada-panel`. Remove `panel_custom` entry, delete `/config/www/scada-panel/`, remove `scada_dark.yaml` (or keep as a personal backup).
+- **PlotTile zoom/pan:** Currently no interactive zoom. Worth adding via uPlot once we have real history data.
+- **Edit mode on phone:** Drag works on touch. Inspector is full-screen on <700px. Verify ergonomics on real phone use.
+- **CameraTile real wiring:** Pass `entity.attributes.entity_picture` as `snapshotUrl` once real cameras are connected. May need to proxy through HA for auth.
+- **Energy flow accuracy:** Mock assumes home = grid + solar + battery. Real flow needs proper sign conventions for selling-back-to-grid and battery discharge.
+- **Tile-level error boundaries:** A single misconfigured tile shouldn't crash the whole Overview. Wrap each `<EditableTile>` in an error boundary.
+- **Layout schema migration:** When LAYOUT_VERSION bumps, write a one-time migration instead of resetting.
+- **Theme switching from inside Realm:** Currently the user switches in HA Profile. Could expose a quick toggle from Realm itself.
+
+---
+
+## 11. Conventions
+
+- **Tokens-first.** Any new color, type style, spacing, or radius lands in `tokens.css` before any component references it. No ad-hoc values.
+- **Entity subscription.** Always use `useEntity(id)` — never read from `hass.states` directly in render. The selector hook is what keeps render scope tight.
+- **Optional entities.** Pass `entityId ?? ''` to `useEntity` when an entity prop is optional. The store handles unknown IDs by returning null. Never wrap `useEntity` in `if`/`?:`.
+- **Tile composition.** Every tile renders inside `<BaseTile>` which owns the chrome (label, status, pill, icon, status accent border). Tile bodies are the differentiation.
+- **No `hass` in props.** Tiles receive entityIds and ask the store via the hook. Avoids prop drilling and excessive re-renders.
+- **Serializable props.** Any new tile prop that an Inspector should edit must be JSON-serializable. The `icon` exception (ReactNode in tile API, string in config) is handled by the registry's render function — follow that pattern.
+- **No em dashes in copy.** Project-wide preference. Use commas, parens, or sentence breaks.
+- **No `crypto.randomUUID()`** unless we're sure we're in a secure context. Use `uid()` from `hass/uid.ts`.
+
+---
+
+*Last touched during the autonomous build that landed the 20-tile expansion + edit mode. Subsequent sessions: append to Future Ideas freely, update Open Questions as we resolve them, and treat the rest as authoritative — change those sections only if reality has shifted.*

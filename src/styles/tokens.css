@@ -1,0 +1,92 @@
+/* Realm design tokens. Locked surface; all components reference these via var(). */
+/* Hybrid: neutral near-black surfaces (Realm) + SCADA state palette and typography. */
+
+:host {
+  /* Surface tones (neutral near-black) */
+  --surface: #0d0f12;
+  --surface-container-lowest: #0a0c0f;
+  --surface-container-low: #14171b;
+  --surface-container: #1a1d22;
+  --surface-container-high: #20242a;
+  --surface-container-highest: #272b32;
+
+  /* Foreground on surface (slate scale, matches SCADA card) */
+  --on-surface: #e2e8f0;
+  --on-surface-variant: #b0bcd0;
+  --on-surface-muted: #8a96ac;
+  --on-surface-faint: #6b7791;
+  --on-surface-dim: #4a5468;
+
+  /* Accent (operator/primary) */
+  --accent: #22d3ee;
+  --accent-on: #042c33;
+
+  /* Status semantics (SCADA palette) */
+  --status-ok: #22c55e;
+  --status-warn: #f59e0b;
+  --status-alarm: #f87171;
+  --status-info: #0ea5e9;
+  --status-stale: #64748b;
+
+  /* Status background tints for pills/chips */
+  --status-ok-bg: rgba(34, 197, 94, 0.12);
+  --status-ok-border: rgba(34, 197, 94, 0.30);
+  --status-warn-bg: rgba(245, 158, 11, 0.12);
+  --status-warn-border: rgba(245, 158, 11, 0.30);
+  --status-alarm-bg: rgba(248, 113, 113, 0.12);
+  --status-alarm-border: rgba(248, 113, 113, 0.30);
+  --status-info-bg: rgba(14, 165, 233, 0.12);
+  --status-info-border: rgba(14, 165, 233, 0.30);
+  --status-idle-bg: rgba(100, 116, 139, 0.10);
+  --status-idle-border: rgba(100, 116, 139, 0.20);
+
+  /* Borders */
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.06);
+  --border-strong: 1px solid rgba(255, 255, 255, 0.12);
+
+  /* Typography */
+  --font-display: 'Barlow Condensed', 'Barlow', 'Roboto Condensed', system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Share Tech Mono', 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+
+  /* Type scale (SCADA density). Labels condensed; values mono. */
+  --type-display:    600 24px/1.15 var(--font-display);
+  --type-headline:   600 18px/1.20 var(--font-display);
+  --type-title:      600 13px/1.20 var(--font-display);
+  --type-body:       400 13px/1.40 var(--font-body);
+  --type-label:      600 11px/1.20 var(--font-display);
+  --type-label-sm:   600 10px/1.20 var(--font-display);
+  --type-value-lg:   700 24px/1.00 var(--font-mono);
+  --type-value:      700 17px/1.00 var(--font-mono);
+  --type-value-sm:   700 14px/1.00 var(--font-mono);
+  --type-pill:       700 10px/1.00 var(--font-mono);
+
+  /* Spacing scale */
+  --space-half: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Radii (sharper, SCADA-leaning) */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* Defaults applied to the panel root */
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  color: var(--on-surface);
+  font: var(--type-body);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+* {
+  box-sizing: border-box;
+}

@@ -1,0 +1,77 @@
+import type { FC, ReactNode } from 'react';
+import { BaseTile } from './BaseTile';
+import { useEntity } from '../../hass';
+
+interface ExtraEntity {
+  label: string;
+  entityId: string;
+}
+
+interface LaundryTileProps {
+  label?: string;
+  icon?: ReactNode;
+  washerEntityId: string;
+  dryerEntityId: string;
+  // Additional entity rows shown below each appliance — e.g. time remaining,
+  // mode, door open. Each appears as a small "LABEL: state" line.
+  washerExtras?: ExtraEntity[];
+  dryerExtras?: ExtraEntity[];
+}
+
+const ExtraRow: FC<ExtraEntity> = ({ label, entityId }) => {
+  const e = useEntity(entityId);
+  if (!e) return null;
+  return (
+    <div className="laundry-tile__extra">
+      <span className="laundry-tile__extra-label">{label}</span>
+      <span className="laundry-tile__extra-value">{e.state}</span>
+    </div>
+  );
+};
+
+const ApplianceCell: FC<{ entityId: string; kind: 'WASHER' | 'DRYER'; extras: ExtraEntity[] }> = ({ entityId, kind, extras }) => {
+  const entity = useEntity(entityId);
+  if (!entity) return null;
+  const state = entity.state;
+  const isActive = state === 'running' || state === 'active' || state === 'on';
+  const cycle = (entity.attributes.cycle as string | undefined) ?? '—';
+  const remaining = (entity.attributes.time_remaining as string | undefined) ?? '0:00';
+
+  return (
+    <div className={`laundry-tile__cell${isActive ? ' laundry-tile__cell--active' : ''}`}>
+      <div className="laundry-tile__cell-head">
+        <span className="laundry-tile__kind">{kind}</span>
+        <span className={`laundry-tile__state${isActive ? ' laundry-tile__state--active' : ''}`}>{state.toUpperCase()}</span>
+      </div>
+      <svg className="laundry-tile__svg" viewBox="0 0 60 60" aria-hidden>
+        <rect x="4" y="4" width="52" height="52" rx="3" fill="var(--surface-container)" stroke="var(--on-surface-faint)" strokeWidth="1" />
+        <circle cx="30" cy="34" r="18" fill="var(--surface-container-lowest)" stroke="var(--on-surface-faint)" strokeWidth="1" />
+        <g className={isActive ? 'laundry-tile__drum laundry-tile__drum--spinning' : 'laundry-tile__drum'}>
+          <circle cx="30" cy="34" r="14" fill="none" stroke="var(--status-info)" strokeWidth="0.6" strokeDasharray="3 2" />
+          <line x1="30" y1="20" x2="30" y2="48" stroke="var(--status-info)" strokeWidth="0.5" opacity="0.4" />
+          <line x1="16" y1="34" x2="44" y2="34" stroke="var(--status-info)" strokeWidth="0.5" opacity="0.4" />
+        </g>
+        <circle cx="48" cy="10" r="1.5" fill={isActive ? 'var(--status-info)' : 'var(--on-surface-faint)'} />
+      </svg>
+      <div className="laundry-tile__cycle">{cycle}</div>
+      <div className="laundry-tile__remaining">{isActive ? remaining : '—'}</div>
+      {extras.length > 0 && (
+        <div className="laundry-tile__extras">
+          {extras.map((x, i) => <ExtraRow key={i} {...x} />)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const LaundryTile: FC<LaundryTileProps> = ({
+  label = 'LAUNDRY', icon, washerEntityId, dryerEntityId,
+  washerExtras = [], dryerExtras = [],
+}) => (
+  <BaseTile label={label} icon={icon}>
+    <div className="laundry-tile">
+      <ApplianceCell entityId={washerEntityId} kind="WASHER" extras={washerExtras} />
+      <ApplianceCell entityId={dryerEntityId} kind="DRYER" extras={dryerExtras} />
+    </div>
+  </BaseTile>
+);
