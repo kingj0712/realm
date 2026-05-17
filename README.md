@@ -1,8 +1,21 @@
 # Realm
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Version](https://img.shields.io/github/package-json/v/kingj0712/realm)](./package.json)
+[![Build](https://github.com/kingj0712/realm/actions/workflows/build.yml/badge.svg)](https://github.com/kingj0712/realm/actions/workflows/build.yml)
+
 A custom React-based dashboard for Home Assistant. Built as a `panel_custom` that lives alongside Lovelace, with a SCADA-leaning visual language: dense industrial HMI, near-black surfaces, Barlow Condensed + Share Tech Mono typography, and ~60 tile types ranging from simple value displays to animated visualizations (tanks that fill, blinds that descend, energy-flow Sankey diagrams, spinning washer drums, ECharts plots with hover tooltips).
 
-> **Heads-up:** this is a personal hobby project published mostly for backup, reference, and curiosity. It's tuned to one HA install and one author. You can fork it, but expect to spend time wiring your own entities and tweaking defaults.
+## Goals
+
+The four pillars guiding every change:
+
+1. **Easy to navigate** — every action discoverable in ≤2 clicks.
+2. **Intuitive** — gestures match expectations (iOS-home-screen drag, Notion-block config, click-to-activate / click-to-configure).
+3. **Extremely customizable** — rich per-tile Inspector, themes, per-breakpoint layouts, tile templates.
+4. **Fun** — animations serve the data; personality tiles invited; tiles that delight.
+
+> **Current state:** Realm is actively evolving from "the author's personal dashboard" toward "fork-and-customize for anyone." Today the default layout assumes the author's entities — you'll need to remap them to yours via the Inspector (Settings → Profile → Theme: Realm Dark; then in Realm, click the pencil → click any tile → change the Entity field). The roadmap to make this painless is tracked in [`WIKI.md`](./WIKI.md) section 1.5.
 
 ## What's in here
 
@@ -35,7 +48,20 @@ npm run build    # type-check + library build → dist/realm.js
 npm run deploy   # build + copy to \\homeassistant.local\config\www\realm\
 ```
 
-The deploy script targets the author's HA share path; edit `scripts/deploy.mjs` for your own install. After the first deploy, register the panel in your HA `configuration.yaml`:
+The deploy script defaults to `\\homeassistant.local\config\www\realm\`. Override with an environment variable if your HA install is elsewhere:
+
+```powershell
+# PowerShell
+$env:REALM_DEPLOY_TARGET = '\\your-ha-host\config\www\realm'
+npm run deploy
+```
+
+```bash
+# bash
+REALM_DEPLOY_TARGET='/path/to/ha/config/www/realm' npm run deploy
+```
+
+After the first deploy, register the panel in your HA `configuration.yaml`:
 
 ```yaml
 panel_custom:

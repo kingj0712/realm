@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-Notes-to-future-Claude for this repo. **Read `WIKI.md` first** — it has the tile catalog, recent-round changelog, open questions, and conventions. This file is the quickstart. See also: `\\homeassistant.local\config\CLAUDE.md` for broader HA context.
+Notes-to-future-Claude for this repo. **Read `WIKI.md` first** — it has the tile catalog, **vision & goals (section 1.5)**, recent-round changelog, open questions, and conventions. This file is the quickstart. See also: `\\homeassistant.local\config\CLAUDE.md` for broader HA context.
+
+**Vision (one-line):** Realm should be the easiest HA dashboard to customize and the most fun to use. Today's biggest priority is the *fork-and-customize* pivot — making Realm useful out of the box for anyone, not just the author. Pull from WIKI section 1.5's "Active backlog" when planning new rounds; every change should clearly serve one of the four pillars (easy nav / intuitive / customizable / fun).
 
 ## What this is
 

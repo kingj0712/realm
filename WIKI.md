@@ -19,6 +19,58 @@ The app starts as a single-pane-of-glass overview and is intended to grow into:
 
 ---
 
+## 1.5 Vision & Goals
+
+Realm should be **the easiest HA dashboard to customize and the most fun to use**. Today it leans personal (the author's entities, the author's layout). The direction we're moving toward:
+
+### Pillars (use these to evaluate every change)
+
+1. **Easy to navigate.** Every action discoverable in ≤2 clicks from the active page. Tab bar always visible. Edit toggle obvious. No hidden menus or right-click-only essentials.
+2. **Intuitive.** Gestures and patterns match what users expect — iOS-home-screen for drag, Notion-block for tile config, browser-tab for tab management. Click-in-view-mode = activate the tile. Click-in-edit-mode = configure it. Same actions always live in the same place.
+3. **Extremely customizable.** Every tile has a rich Inspector. Themes, column counts, row heights, per-breakpoint layouts, tile templates that can be saved and shared. Power users can go deep; new users get sensible defaults.
+4. **Fun.** Animations serve the data (tank fills, drum spins, alarm pulses, dashed flow lines) — not gratuitous, but never afraid of personality. Satisfying micro-interactions. Tiles that delight: more weird/specific tile types as inspiration strikes.
+
+### Active backlog — pull from here when planning rounds
+
+**Path to fork-and-customize (anyone can use this, not just the author):**
+- [ ] **Empty-state Overview** — when no entities resolve, show a friendly first-run screen instead of "n/a" everywhere.
+- [ ] **Generic defaults** — replace personal-flavored entity IDs in `defaultLayouts.ts` (e.g. `person.jake`) with placeholder names that signal "remap me." Or better: a curated demo tab + an empty user tab.
+- [ ] **Sample dashboard library** — a few preset tabs users can import: "Smart Apartment," "Homestead Ops," "Server Room," "Family Status Board." One-click load.
+- [ ] **Deploy target configuration** — done in v0.9.1: `REALM_DEPLOY_TARGET` env var overrides the hardcoded HA share path.
+- [ ] **Onboarding flow** — first-run experience that asks "scan my HA entities and build a starter layout?" vs. "give me the demo." Eliminates the "all my tiles say n/a" first impression.
+- [ ] **Entity remapping helper** — bulk find/replace across a tab when the user wants to swap demo entities for their own.
+- [ ] **Setup docs** — a tutorial walking from `git clone` → live HA panel in 10 minutes.
+
+**Navigation polish:**
+- [ ] Keyboard shortcuts — `E` toggle edit, `/` focus palette search, `Esc` close modals, `⌘D` duplicate selected tile.
+- [ ] Inline tab rename instead of `window.prompt`.
+- [ ] Tab drag-reorder.
+- [ ] Per-tile click navigates to a deep-dive page (when one exists for the entity).
+
+**Intuitive UX:**
+- [ ] Replace `window.prompt`/`confirm` everywhere with consistent in-app modals.
+- [ ] Visual feedback when service calls succeed/fail (toast or tile flash).
+- [ ] Loading skeleton instead of empty tile while history fetches.
+- [ ] Drag preview that follows cursor with size badge (already partially done; polish).
+
+**Customizability:**
+- [ ] Per-breakpoint layouts (currently all breakpoints share the lg layout).
+- [ ] Theme picker — surface palette and accent color, not just the SCADA defaults.
+- [ ] Custom row height / column count per tab.
+- [ ] Save layout snapshots (export/import JSON or share via URL hash).
+- [ ] User-defined tile templates (save a configured tile as a reusable preset).
+- [ ] Custom CSS hook for power users.
+
+**Fun:**
+- [ ] More personality tiles — coop status with chicken icons, beehive with bee animation, rain-radar tile with falling raindrops.
+- [ ] Satisfying drag/drop sound effects (off by default, toggleable).
+- [ ] Tile reveal animation when entering edit mode.
+- [ ] Easter egg tile types (Pong-Tile? Aquarium-Tile that shows fake fish?).
+- [ ] Confetti animation when an alarm clears.
+- [ ] Status-color "weather effects" on the dashboard background (subtle gradient shift when an alarm is active).
+
+---
+
 ## 2. Architecture Overview
 
 ### Source & deploy

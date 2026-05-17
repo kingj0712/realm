@@ -1,9 +1,12 @@
 import { cp, mkdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-// Mirrors the scada-panel deploy pattern: build artifact -> HA share over SMB.
-const TARGET_DIR = '\\\\homeassistant.local\\config\\www\\realm';
-const TARGET_FILE = `${TARGET_DIR}\\realm.js`;
+// Deploys the built bundle to your HA `/config/www/` share so panel_custom
+// can serve it. Default targets the author's setup; set REALM_DEPLOY_TARGET
+// to override for your own HA install (any path your machine can write to).
+const TARGET_DIR = process.env.REALM_DEPLOY_TARGET || '\\\\homeassistant.local\\config\\www\\realm';
+const sep = TARGET_DIR.includes('\\') ? '\\' : '/';
+const TARGET_FILE = `${TARGET_DIR}${sep}realm.js`;
 const SOURCE = resolve('dist', 'realm.js');
 
 async function exists(path) {
