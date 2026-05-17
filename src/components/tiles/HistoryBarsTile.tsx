@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity, useHistory } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface HistoryBarsTileProps {
   entityId: string;
@@ -40,6 +41,7 @@ export const HistoryBarsTile: FC<HistoryBarsTileProps> = ({
 }) => {
   const entity = useEntity(entityId);
   const generated = useHistory(entityId, bars);
+  const [open, setOpen] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
   if (!entity) return <BaseTile label={friendly} status="stale" icon={icon} pill="unavail"><div>n/a</div></BaseTile>;
 
@@ -54,24 +56,34 @@ export const HistoryBarsTile: FC<HistoryBarsTileProps> = ({
   const max = Math.max(...data, 0.0001);
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon}>
-      <div className="history-bars">
-        <div className="history-bars__head">
-          <span className="history-bars__num">{display}</span>
-          {unit && <span className="history-bars__unit">{unit}</span>}
-          <span className="history-bars__range">{bars}D</span>
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} onClick={() => setOpen(true)}>
+        <div className="history-bars">
+          <div className="history-bars__head">
+            <span className="history-bars__num">{display}</span>
+            {unit && <span className="history-bars__unit">{unit}</span>}
+            <span className="history-bars__range">{bars}D</span>
+          </div>
+          <div className={`history-bars__bars history-bars__bars--${status}`}>
+            {data.map((v, i) => (
+              <span
+                key={i}
+                className="history-bars__bar"
+                style={{ height: `${Math.max(2, (v / max) * 100)}%` }}
+                title={`${v.toFixed(precision)} ${unit}`}
+              />
+            ))}
+          </div>
         </div>
-        <div className={`history-bars__bars history-bars__bars--${status}`}>
-          {data.map((v, i) => (
-            <span
-              key={i}
-              className="history-bars__bar"
-              style={{ height: `${Math.max(2, (v / max) * 100)}%` }}
-              title={`${v.toFixed(precision)} ${unit}`}
-            />
-          ))}
-        </div>
-      </div>
-    </BaseTile>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={`${display}${unit ? ' ' + unit : ''}`}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };

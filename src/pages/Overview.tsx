@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ResponsiveGridLayout,
   useContainerWidth,
@@ -8,16 +8,31 @@ import {
 } from 'react-grid-layout';
 import {
   useLayout, Inspector, Palette, EditModeBanner, TabBar, AlarmChips, AlarmsConfig,
-  TILE_BY_TYPE,
+  SampleBrowser, TILE_BY_TYPE,
 } from '../edit';
 
 const BREAKPOINTS = { lg: 1024, md: 768, sm: 480, xs: 0 };
 const COLS = { lg: 12, md: 8, sm: 6, xs: 4 };
 
+// True when the currently-focused element is a text input. Walks down through
+// shadow roots so it works whether Realm is rendered standalone (dev server)
+// or inside the panel_custom shadow root (production).
+function isTypingTarget(): boolean {
+  let el: Element | null = document.activeElement;
+  while (el && (el as HTMLElement).shadowRoot?.activeElement) {
+    el = (el as HTMLElement).shadowRoot!.activeElement;
+  }
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.isContentEditable) return true;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
 export const Overview: FC = () => {
-  const { activeTab, isEditing, selectedTileId, selectTile, removeTile, duplicateTile, updateTile } = useLayout();
+  const { activeTab, isEditing, setEditing, selectedTileId, selectTile, removeTile, duplicateTile, updateTile } = useLayout();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [alarmsConfigOpen, setAlarmsConfigOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const { width, containerRef, mounted } = useContainerWidth();
 
   const items = activeTab.items;
@@ -38,6 +53,33 @@ export const Overview: FC = () => {
     }
   };
 
+  // Global keyboard shortcuts. Skipped whenever the user is typing in an input
+  // so we don't hijack ordinary text entry. Esc isn't bound here for modals;
+  // each modal owns its own Esc handler so dismissal order is local.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isTypingTarget()) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === 'e') {
+        e.preventDefault();
+        setEditing(!isEditing);
+        return;
+      }
+      if (k === '/') {
+        e.preventDefault();
+        if (!isEditing) setEditing(true);
+        setPaletteOpen(true);
+        return;
+      }
+      if (k === 'escape' && selectedTileId) {
+        selectTile(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isEditing, setEditing, selectedTileId, selectTile]);
+
   const selected = selectedTileId ? items.find((i) => i.id === selectedTileId) ?? null : null;
 
   return (
@@ -47,9 +89,11 @@ export const Overview: FC = () => {
       <EditModeBanner
         onAddTile={() => setPaletteOpen(true)}
         onConfigureAlarms={() => setAlarmsConfigOpen(true)}
+        onOpenTemplates={() => setTemplatesOpen(true)}
       />
       <Palette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <AlarmsConfig open={alarmsConfigOpen} onClose={() => setAlarmsConfigOpen(false)} />
+      <SampleBrowser open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
 
       <div ref={containerRef} className="overview-grid-container">
         {mounted && (

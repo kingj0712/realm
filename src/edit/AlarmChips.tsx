@@ -1,6 +1,7 @@
-import type { FC } from 'react';
+import { useState, type FC } from 'react';
 import { useLayout } from './LayoutContext';
 import { useEntity } from '../hass';
+import { EntityPicker } from './EntityPicker';
 
 interface AlarmChipsProps {
   // entity IDs to monitor; chip appears only when entity is in an alarm-y state.
@@ -37,16 +38,23 @@ export const AlarmChips: FC<AlarmChipsProps> = ({ entityIds }) => {
   );
 };
 
-// Settings drawer to configure the active tab's alarm entity list.
+// Settings drawer to configure the active tab's alarm entity list. Picker is
+// inline so users see what entities exist instead of typing IDs blind.
 export const AlarmsConfig: FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
   const { activeTab, setActiveTabAlarmEntities } = useLayout();
+  const [adding, setAdding] = useState(false);
+  const [draftId, setDraftId] = useState('');
   const entities = activeTab.alarmEntities ?? [];
 
   if (!open) return null;
 
-  const onAdd = () => {
-    const id = window.prompt('Entity ID to add (e.g. binary_sensor.water_leak):');
-    if (id && id.trim()) setActiveTabAlarmEntities([...entities, id.trim()]);
+  const cancelAdd = () => { setAdding(false); setDraftId(''); };
+  const commitAdd = () => {
+    const id = draftId.trim();
+    if (id && !entities.includes(id)) {
+      setActiveTabAlarmEntities([...entities, id]);
+    }
+    cancelAdd();
   };
   const onRemove = (id: string) => setActiveTabAlarmEntities(entities.filter((x) => x !== id));
 
@@ -66,7 +74,7 @@ export const AlarmsConfig: FC<{ open: boolean; onClose: () => void }> = ({ open,
             (binary_sensor &quot;on&quot;, or sensor states &quot;problem&quot; / &quot;alarm&quot; / &quot;triggered&quot;).
           </p>
           <div className="alarms-config__list">
-            {entities.length === 0 && (
+            {entities.length === 0 && !adding && (
               <div className="alarms-config__empty">No alarm entities configured.</div>
             )}
             {entities.map((id) => (
@@ -83,7 +91,27 @@ export const AlarmsConfig: FC<{ open: boolean; onClose: () => void }> = ({ open,
               </div>
             ))}
           </div>
-          <button type="button" className="alarms-config__add" onClick={onAdd}>+ ADD ENTITY</button>
+          {adding ? (
+            <div className="alarms-config__picker">
+              <EntityPicker
+                value={draftId}
+                onChange={setDraftId}
+                domains={['binary_sensor', 'sensor', 'alarm_control_panel']}
+              />
+              <div className="alarms-config__picker-actions">
+                <button type="button" className="alarms-config__add" onClick={commitAdd} disabled={!draftId}>
+                  ADD
+                </button>
+                <button type="button" className="alarms-config__cancel" onClick={cancelAdd}>
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="alarms-config__add" onClick={() => setAdding(true)}>
+              + ADD ENTITY
+            </button>
+          )}
         </div>
       </div>
     </div>

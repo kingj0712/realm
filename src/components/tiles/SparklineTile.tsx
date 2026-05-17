@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity, useHistory } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface SparklineTileProps {
   entityId: string;
@@ -37,6 +38,7 @@ export const SparklineTile: FC<SparklineTileProps> = ({
 }) => {
   const entity = useEntity(entityId);
   const history = useHistory(entityId, points);
+  const [open, setOpen] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
   if (!entity || history.length < 2) {
@@ -81,22 +83,32 @@ export const SparklineTile: FC<SparklineTileProps> = ({
     ` L ${w},${h} Z`;
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon}>
-      <div className="sparkline-tile">
-        <div className="sparkline-tile__head">
-          <span className="sparkline-tile__num">{display}</span>
-          {unit && <span className="sparkline-tile__unit">{unit}</span>}
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} onClick={() => setOpen(true)}>
+        <div className="sparkline-tile">
+          <div className="sparkline-tile__head">
+            <span className="sparkline-tile__num">{display}</span>
+            {unit && <span className="sparkline-tile__unit">{unit}</span>}
+          </div>
+          <svg
+            className={`sparkline-tile__svg sparkline-tile__svg--${status}`}
+            viewBox={`0 0 ${w} ${h}`}
+            preserveAspectRatio="none"
+            aria-hidden
+          >
+            <path className="sparkline-tile__area" d={areaPath} />
+            <polyline className="sparkline-tile__line" points={pts} />
+          </svg>
         </div>
-        <svg
-          className={`sparkline-tile__svg sparkline-tile__svg--${status}`}
-          viewBox={`0 0 ${w} ${h}`}
-          preserveAspectRatio="none"
-          aria-hidden
-        >
-          <path className="sparkline-tile__area" d={areaPath} />
-          <polyline className="sparkline-tile__line" points={pts} />
-        </svg>
-      </div>
-    </BaseTile>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={`${display}${unit ? ' ' + unit : ''}`}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };

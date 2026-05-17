@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface GaugeTileProps {
   entityId: string;
@@ -44,6 +45,7 @@ export const GaugeTile: FC<GaugeTileProps> = ({
   thresholds,
 }) => {
   const entity = useEntity(entityId);
+  const [open, setOpen] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
   if (!entity) {
@@ -63,33 +65,43 @@ export const GaugeTile: FC<GaugeTileProps> = ({
   const dashOffset = ARC_LENGTH * (1 - pct);
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon}>
-      <div className="gauge-tile">
-        <svg
-          className="gauge-tile__svg"
-          viewBox="0 0 100 90"
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden
-        >
-          <path className="gauge-tile__bg" d={ARC_PATH} />
-          <path
-            className={`gauge-tile__fg gauge-tile__fg--${status}`}
-            d={ARC_PATH}
-            style={{ strokeDasharray: ARC_LENGTH, strokeDashoffset: dashOffset }}
-          />
-          {/* min/max ticks below the arc opening */}
-          <text className="gauge-tile__tick" x="18" y="88" textAnchor="middle">
-            {min}
-          </text>
-          <text className="gauge-tile__tick" x="82" y="88" textAnchor="middle">
-            {max}
-          </text>
-        </svg>
-        <div className="gauge-tile__center">
-          <div className="gauge-tile__value">{display}</div>
-          {unit && <div className="gauge-tile__unit">{unit}</div>}
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} onClick={() => setOpen(true)}>
+        <div className="gauge-tile">
+          <svg
+            className="gauge-tile__svg"
+            viewBox="0 0 100 90"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden
+          >
+            <path className="gauge-tile__bg" d={ARC_PATH} />
+            <path
+              className={`gauge-tile__fg gauge-tile__fg--${status}`}
+              d={ARC_PATH}
+              style={{ strokeDasharray: ARC_LENGTH, strokeDashoffset: dashOffset }}
+            />
+            {/* min/max ticks below the arc opening */}
+            <text className="gauge-tile__tick" x="18" y="88" textAnchor="middle">
+              {min}
+            </text>
+            <text className="gauge-tile__tick" x="82" y="88" textAnchor="middle">
+              {max}
+            </text>
+          </svg>
+          <div className="gauge-tile__center">
+            <div className="gauge-tile__value">{display}</div>
+            {unit && <div className="gauge-tile__unit">{unit}</div>}
+          </div>
         </div>
-      </div>
-    </BaseTile>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={`${display}${unit ? ' ' + unit : ''}`}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };

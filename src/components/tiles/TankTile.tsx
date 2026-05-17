@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface TankTileProps {
   entityId: string;
@@ -22,6 +23,7 @@ export const TankTile: FC<TankTileProps> = ({
   alarmBelow = 10,
 }) => {
   const entity = useEntity(entityId);
+  const [open, setOpen] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
   if (!entity) {
@@ -53,67 +55,77 @@ export const TankTile: FC<TankTileProps> = ({
   const fillY = tankBottom - fillHeight;
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon} pill={pillText}>
-      <div className="tank-tile">
-        <svg
-          className="tank-tile__svg"
-          viewBox="0 0 40 90"
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden
-        >
-          {/* Tank outline */}
-          <rect
-            x="4"
-            y={tankTop}
-            width="32"
-            height={tankHeight}
-            rx="2"
-            fill="var(--surface-container-lowest)"
-            stroke="var(--on-surface-faint)"
-            strokeWidth="1"
-          />
-          {/* Liquid fill (animated via CSS transition on y + height) */}
-          <rect
-            className={`tank-tile__fill tank-tile__fill--${status}`}
-            x="5"
-            y={fillY}
-            width="30"
-            height={fillHeight}
-          />
-          {/* Surface shine */}
-          {fillHeight > 4 && (
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} pill={pillText} onClick={() => setOpen(true)}>
+        <div className="tank-tile">
+          <svg
+            className="tank-tile__svg"
+            viewBox="0 0 40 90"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden
+          >
+            {/* Tank outline */}
             <rect
-              className="tank-tile__shine"
-              x="7"
-              y={fillY + 1}
-              width="2"
-              height={fillHeight - 2}
+              x="4"
+              y={tankTop}
+              width="32"
+              height={tankHeight}
+              rx="2"
+              fill="var(--surface-container-lowest)"
+              stroke="var(--on-surface-faint)"
+              strokeWidth="1"
             />
-          )}
-          {/* Tick marks at 25/50/75% */}
-          {[0.25, 0.5, 0.75].map((t) => {
-            const y = tankBottom - tankHeight * t;
-            return (
-              <line
-                key={t}
-                x1="0"
-                y1={y}
-                x2="3"
-                y2={y}
-                stroke="var(--on-surface-faint)"
-                strokeWidth="0.8"
+            {/* Liquid fill (animated via CSS transition on y + height) */}
+            <rect
+              className={`tank-tile__fill tank-tile__fill--${status}`}
+              x="5"
+              y={fillY}
+              width="30"
+              height={fillHeight}
+            />
+            {/* Surface shine */}
+            {fillHeight > 4 && (
+              <rect
+                className="tank-tile__shine"
+                x="7"
+                y={fillY + 1}
+                width="2"
+                height={fillHeight - 2}
               />
-            );
-          })}
-        </svg>
-        <div className="tank-tile__meta">
-          <div className="tank-tile__pct">
-            {level.toFixed(1)}
-            <span className="tank-tile__pct-unit">%</span>
+            )}
+            {/* Tick marks at 25/50/75% */}
+            {[0.25, 0.5, 0.75].map((t) => {
+              const y = tankBottom - tankHeight * t;
+              return (
+                <line
+                  key={t}
+                  x1="0"
+                  y1={y}
+                  x2="3"
+                  y2={y}
+                  stroke="var(--on-surface-faint)"
+                  strokeWidth="0.8"
+                />
+              );
+            })}
+          </svg>
+          <div className="tank-tile__meta">
+            <div className="tank-tile__pct">
+              {level.toFixed(1)}
+              <span className="tank-tile__pct-unit">%</span>
+            </div>
+            {capacity && <div className="tank-tile__capacity">{capacity}</div>}
           </div>
-          {capacity && <div className="tank-tile__capacity">{capacity}</div>}
         </div>
-      </div>
-    </BaseTile>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={pillText}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };

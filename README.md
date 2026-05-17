@@ -15,7 +15,7 @@ The four pillars guiding every change:
 3. **Extremely customizable** — rich per-tile Inspector, themes, per-breakpoint layouts, tile templates.
 4. **Fun** — animations serve the data; personality tiles invited; tiles that delight.
 
-> **Current state:** Realm is actively evolving from "the author's personal dashboard" toward "fork-and-customize for anyone." Today the default layout assumes the author's entities — you'll need to remap them to yours via the Inspector (Settings → Profile → Theme: Realm Dark; then in Realm, click the pencil → click any tile → change the Entity field). The roadmap to make this painless is tracked in [`WIKI.md`](./WIKI.md) section 1.5.
+> **Current state:** Realm is actively evolving from "the author's personal dashboard" toward "fork-and-customize for anyone." Fresh installs now land on a **Welcome tab** with zero entity dependencies, plus a separate **Demo tab** showing every tile type. Use the **TEMPLATES** button in edit mode to drop in a Smart Home Starter / Homestead Ops / Showcase layout as a brand-new tab. To remap demo entities to yours, click the pencil → click any tile → change its Entity field. Roadmap in [`WIKI.md`](./WIKI.md) section 1.5.
 
 ## What's in here
 
@@ -83,15 +83,24 @@ Realm ships with a companion HA theme (`themes/realm_dark.yaml` in the author's 
 
 ## Status
 
-Active development. The author posts incremental rounds of work — see `WIKI.md` section 9.0 for the changelog. Recent rounds (7–9): drag-to-resize, switched to react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots.
+Active development. The author posts incremental rounds of work — see `WIKI.md` section 9.0 for the changelog. Recent rounds (7–10): drag-to-resize, switched to react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, EntityDetailModal wired on Tank/Gauge/Donut/Bar/Value/Sparkline/HistoryBars/Weather/Camera, first-run Welcome layout + sample dashboard library, inline tab rename, keyboard shortcuts.
+
+## Keyboard shortcuts
+
+- `E` — toggle edit mode
+- `/` — open the tile palette (autofocuses its search box)
+- `Esc` — deselect the active tile (modals own their own Esc)
+
+Shortcuts are skipped while typing in any input.
 
 ## Not done yet
 
 - Live HA wiring (mock store still in place — phase 6+).
-- `EntityDetailModal` wiring per tile (infrastructure built, per-tile click-handlers pending).
+- More tiles deserve detail modals (Network/NAS/SpeedTest/Sankey/Heatmap/MultiMetric/Alarm/AreaList — same pattern as round 10's).
+- Tab drag-to-reorder.
 - Floorplans route.
-- Per-breakpoint layouts (currently the desktop layout reflows to fit mobile via RGL's compactor).
-- Polish on edit chrome (window.prompt for tab rename should become an inline editor).
+- Per-breakpoint layouts (currently all breakpoints share the lg layout).
+- Theme picker / custom CSS hook.
 
 See `WIKI.md` section 10 for the full open-questions list.
 

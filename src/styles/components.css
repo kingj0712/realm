@@ -2794,3 +2794,57 @@
 .homelab-tile__bar--warn  .homelab-tile__bar-fill { background: var(--status-warn); }
 .homelab-tile__bar--alarm .homelab-tile__bar-fill { background: var(--status-alarm); }
 .homelab-tile__bar-val { font-family: var(--font-mono); font-size: 10px; color: var(--on-surface); text-align: right; }
+
+/* WeatherDetailModal (custom body inside EntityDetailModal for WeatherTile) */
+.weather-detail { display: flex; flex-direction: column; gap: var(--space-4); }
+.weather-detail__current { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3); background: var(--surface-container-lowest); border-radius: var(--radius-sm); }
+.weather-detail__current-icon { color: var(--accent); display: inline-flex; }
+.weather-detail__current-block { display: flex; flex-direction: column; gap: var(--space-1); }
+.weather-detail__current-temp { font-family: var(--font-display); font-weight: 700; font-size: 56px; line-height: 1; color: var(--on-surface); }
+.weather-detail__current-unit { font-size: 24px; color: var(--on-surface-muted); margin-left: 4px; }
+.weather-detail__current-cond { font: var(--type-label); letter-spacing: 0.12em; color: var(--on-surface-variant); }
+.weather-detail__metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--space-2); }
+.weather-detail__metric { background: var(--surface-container-lowest); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); display: flex; flex-direction: column; gap: 2px; }
+.weather-detail__metric-label { font: var(--type-label-sm); letter-spacing: 0.12em; color: var(--on-surface-muted); }
+.weather-detail__metric-value { font-family: var(--font-mono); font-size: 16px; color: var(--on-surface); }
+.weather-detail__forecast { display: flex; flex-direction: column; gap: var(--space-2); }
+.weather-detail__forecast-title { font: var(--type-label); letter-spacing: 0.16em; color: var(--on-surface-muted); }
+.weather-detail__forecast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: var(--space-2); }
+.weather-detail__forecast-day { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: var(--space-2); background: var(--surface-container-lowest); border-radius: var(--radius-sm); }
+.weather-detail__forecast-dow { font: var(--type-label); letter-spacing: 0.10em; color: var(--on-surface-variant); }
+.weather-detail__forecast-date { font: var(--type-label-sm); letter-spacing: 0.08em; color: var(--on-surface-muted); }
+.weather-detail__forecast-icon { color: var(--accent); }
+.weather-detail__forecast-cond { font: var(--type-label-sm); letter-spacing: 0.08em; color: var(--on-surface-muted); text-align: center; }
+.weather-detail__forecast-temps { display: flex; gap: var(--space-2); font-family: var(--font-mono); font-size: 14px; }
+.weather-detail__forecast-hi { color: var(--on-surface); }
+.weather-detail__forecast-lo { color: var(--on-surface-muted); }
+
+/* CameraDetailModal */
+.camera-detail { display: flex; flex-direction: column; gap: var(--space-3); }
+.camera-detail__viewport { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius-sm); overflow: hidden; }
+.camera-detail__img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.camera-detail__placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font: var(--type-label); letter-spacing: 0.16em; color: var(--on-surface-faint); background: #0a0c10; }
+.camera-detail__overlay { position: absolute; bottom: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none; }
+.camera-detail__meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-2); }
+.camera-detail__meta-row { display: flex; flex-direction: column; gap: 2px; background: var(--surface-container-lowest); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); }
+.camera-detail__meta-label { font: var(--type-label-sm); letter-spacing: 0.12em; color: var(--on-surface-muted); }
+.camera-detail__meta-value { font-family: var(--font-mono); font-size: 13px; color: var(--on-surface); }
+
+/* SampleBrowser (TEMPLATES picker in edit mode) */
+.sample-browser__hint { font: var(--type-body); color: var(--on-surface-variant); margin: 0 0 var(--space-3) 0; }
+.sample-browser__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-3); }
+.sample-browser__card { display: flex; flex-direction: column; gap: var(--space-2); background: var(--surface-container-lowest); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: var(--space-3); cursor: pointer; text-align: left; transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
+.sample-browser__card:hover { background: var(--surface-container); border-color: var(--accent); transform: translateY(-1px); }
+.sample-browser__name { font: var(--type-headline); color: var(--on-surface); letter-spacing: 0.04em; }
+.sample-browser__desc { font: var(--type-body); color: var(--on-surface-variant); line-height: 1.4; }
+.sample-browser__action { font: var(--type-label); letter-spacing: 0.16em; color: var(--accent); margin-top: var(--space-1); padding-top: var(--space-2); border-top: 1px solid rgba(255,255,255,0.04); }
+
+/* Inline tab rename input (TabBar) */
+.tab-bar__rename { background: var(--surface-container-lowest); border: 1px solid var(--accent); border-radius: var(--radius-sm); color: var(--on-surface); font: var(--type-label); padding: 4px 8px; min-width: 100px; outline: none; }
+
+/* Inline EntityPicker container inside AlarmsConfig */
+.alarms-config__picker { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid rgba(255,255,255,0.06); }
+.alarms-config__picker-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
+.alarms-config__cancel { background: transparent; border: 1px solid rgba(255,255,255,0.10); border-radius: var(--radius-sm); color: var(--on-surface-muted); font: var(--type-label); padding: 6px 12px; cursor: pointer; }
+.alarms-config__cancel:hover { color: var(--on-surface); border-color: rgba(255,255,255,0.20); }
+.alarms-config__add:disabled { opacity: 0.4; cursor: not-allowed; }

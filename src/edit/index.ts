@@ -4,6 +4,8 @@ export { Palette } from './Palette';
 export { EditModeBanner } from './EditModeBanner';
 export { TabBar } from './TabBar';
 export { AlarmChips, AlarmsConfig } from './AlarmChips';
+export { SampleBrowser } from './SampleBrowser';
+export { SAMPLE_LAYOUTS, type SampleLayout } from './sampleLayouts';
 export { TILE_REGISTRY, TILE_BY_TYPE, TILE_CATEGORIES } from './tileRegistry';
 export { ICON_LIBRARY, ICON_NAMES, resolveIcon } from './iconLookup';
 export type { LayoutItem, DashboardLayout, TileMeta, PropDescriptor, PropsSchema } from './types';

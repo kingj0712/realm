@@ -33,22 +33,22 @@ Realm should be **the easiest HA dashboard to customize and the most fun to use*
 ### Active backlog — pull from here when planning rounds
 
 **Path to fork-and-customize (anyone can use this, not just the author):**
-- [ ] **Empty-state Overview** — when no entities resolve, show a friendly first-run screen instead of "n/a" everywhere.
-- [ ] **Generic defaults** — replace personal-flavored entity IDs in `defaultLayouts.ts` (e.g. `person.jake`) with placeholder names that signal "remap me." Or better: a curated demo tab + an empty user tab.
-- [ ] **Sample dashboard library** — a few preset tabs users can import: "Smart Apartment," "Homestead Ops," "Server Room," "Family Status Board." One-click load.
-- [ ] **Deploy target configuration** — done in v0.9.1: `REALM_DEPLOY_TARGET` env var overrides the hardcoded HA share path.
-- [ ] **Onboarding flow** — first-run experience that asks "scan my HA entities and build a starter layout?" vs. "give me the demo." Eliminates the "all my tiles say n/a" first impression.
+- [x] **Empty-state Overview / first-run welcome** — done in round 10: new installs land on a Welcome tab (pure HeaderTiles, zero entity deps) + a separate Demo tab they can delete. No more "n/a everywhere" first impression.
+- [ ] **Generic defaults** — `person.jake`/`person.sam` etc. still appear in the Showcase demo layout. Worth a pass to rename for clarity, but lower urgency now that Showcase is opt-in (it's the second tab, easy to delete).
+- [x] **Sample dashboard library** — done in round 10. `src/edit/sampleLayouts.ts` exports four samples (Welcome, Smart Home Starter, Homestead Ops, Showcase) wired into a TEMPLATES button in the edit banner. Each loads as a new tab.
+- [x] **Deploy target configuration** — done in v0.9.1: `REALM_DEPLOY_TARGET` env var overrides the hardcoded HA share path.
+- [ ] **Onboarding flow** — first-run wizard that asks "scan my HA entities and build a starter layout?" vs. "give me the demo." Welcome layout from round 10 covers the static side; live-entity scan is still future work.
 - [ ] **Entity remapping helper** — bulk find/replace across a tab when the user wants to swap demo entities for their own.
 - [ ] **Setup docs** — a tutorial walking from `git clone` → live HA panel in 10 minutes.
 
 **Navigation polish:**
-- [ ] Keyboard shortcuts — `E` toggle edit, `/` focus palette search, `Esc` close modals, `⌘D` duplicate selected tile.
-- [ ] Inline tab rename instead of `window.prompt`.
+- [x] Keyboard shortcuts — `E` toggle edit, `/` open palette (focuses its autoFocus search), `Esc` deselect selected tile. `⌘D` duplicate still pending.
+- [x] Inline tab rename instead of `window.prompt` — done in round 10.
 - [ ] Tab drag-reorder.
 - [ ] Per-tile click navigates to a deep-dive page (when one exists for the entity).
 
 **Intuitive UX:**
-- [ ] Replace `window.prompt`/`confirm` everywhere with consistent in-app modals.
+- [x] Replace `window.prompt`/`confirm` in AlarmsConfig — done in round 10, now uses inline EntityPicker. Tab delete + Reset still use `window.confirm` for the dangerous-action acknowledgement (intentional).
 - [ ] Visual feedback when service calls succeed/fail (toast or tile flash).
 - [ ] Loading skeleton instead of empty tile while history fetches.
 - [ ] Drag preview that follows cursor with size badge (already partially done; polish).
@@ -315,7 +315,8 @@ Most recent first. Sections 9.1–9.5 below have round-specific detail.
 
 | Round | Headline shipped |
 |-------|------------------|
-| **9** (current) | Multi-tab system (per-tab layout + alarm config), alarm chips strip, duplicate tile, Inspector + Palette readability pass with text search, Blinds/Curtain position sliders, Thermostat `showX` checkboxes, Laundry `washerExtras`/`dryerExtras`, HeaderTile, switched to `noCompactor` (iOS-style fixed positions, gaps allowed). LAYOUT_VERSION 4. |
+| **10** (current) | **EntityDetailModal wired** on Tank/Gauge/Donut/Bar/Value/Sparkline/HistoryBars (click outside edit mode → modal with 60-pt history plot + attributes table). **Custom detail modals** for WeatherTile (extended forecast + full conditions) and CameraTile (full-image viewport + metadata). **Sample dashboard library** (Welcome, Smart Home Starter, Homestead Ops, Showcase) browsable via TEMPLATES button in edit banner; each loads as a new tab. **First-run Welcome** layout — pure HeaderTiles, zero entity dependencies, so a fresh install looks intentional. **Inline tab rename** replaces `window.prompt`. **EntityPicker** inside AlarmsConfig replaces `window.prompt`. **Keyboard shortcuts**: `E` toggle edit, `/` open palette (autofocuses search), `Esc` deselect. LAYOUT_VERSION 5 (v4 migrates forward cleanly). |
+| **9** | Multi-tab system (per-tab layout + alarm config), alarm chips strip, duplicate tile, Inspector + Palette readability pass with text search, Blinds/Curtain position sliders, Thermostat `showX` checkboxes, Laundry `washerExtras`/`dryerExtras`, HeaderTile, switched to `noCompactor` (iOS-style fixed positions, gaps allowed). LAYOUT_VERSION 4. |
 | **8** | Migrated Overview from @dnd-kit/sortable + custom-drag to **react-grid-layout v2**. Explicit `(x, y, w, h)` coordinates per tile. RGL handles drag (via `dragConfig.handle`) and resize (via `resizeConfig`). EditableTile.tsx deprecated; rendering inlined in `Overview.tsx`. LAYOUT_VERSION 3. |
 | **7** | Drag-to-resize handle (bottom-right corner). Base row height dropped to 20px with per-tile `defaultRowSpan`. Inspector HEIGHT preset buttons (XS/SM/MD/LG/XL). Simplified `LightFanTile` to two on/off buttons. New `BlindsTile`. **PlotTile rewritten with ECharts** (interactive hover crosshair + value tooltip). New `WeeklyDigestTile` (fetches homestead-hq at `homestead-hq.local:3000`, needs CORS). `WeatherRadarTile` ships with an empty `iframeUrl` (user sets in inspector). LAYOUT_VERSION 2. |
 | **6** | 14 new tiles (Climate/AirPurifier/LightFan/Curtain/NAS/SpeedTest/Starlink/UDM/Vehicle/Laundry/Sankey/Countdown/WeatherRadar/Appliance/Homelab). CameraTile auto-reads `entity.attributes.entity_picture` with configurable refresh. Drag pixel rounding, weather alignment + overflow fix, HA theme MDC vars for inputs. `TileModal` + `EntityDetailModal` infrastructure shipped (per-tile wiring still pending). |
@@ -371,8 +372,9 @@ Track decisions we've deferred and known issues.
 - **CameraTile real wiring:** Pass `entity.attributes.entity_picture` as `snapshotUrl` once real cameras are connected. May need to proxy through HA for auth.
 - **Energy flow accuracy:** Mock assumes home = grid + solar + battery. Real flow needs proper sign conventions for selling-back-to-grid and battery discharge.
 - **Tile-level error boundaries:** A single misconfigured tile shouldn't crash the whole Overview. Wrap each `<EditableTile>` in an error boundary.
-- **Layout schema migration:** When LAYOUT_VERSION bumps, write a one-time migration instead of resetting.
+- **Layout schema migration:** v4 → v5 was a no-op rename (round 10) because the shape was identical. Future schema changes should ship a real migration rather than dropping local state.
 - **Theme switching from inside Realm:** Currently the user switches in HA Profile. Could expose a quick toggle from Realm itself.
+- **More tiles need detail modals:** Round 10 wired the obvious visualization tiles + Weather + Camera. Still candidate-for-modal: NetworkTile, NASTile, SpeedTestTile, SankeyTile, HeatmapTile, MultiMetricTile, AlarmTile (event history view), AreaListTile (per-row drill-down). Same pattern as the round 10 wiring.
 
 ---
 

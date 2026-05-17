@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface Threshold {
   warn?: { lt?: number; gt?: number };
@@ -30,6 +31,7 @@ function evaluateStatus(value: number, t?: Threshold): TileStatus {
 
 export const ValueTile: FC<ValueTileProps> = ({ entityId, label, icon, precision, thresholds }) => {
   const entity = useEntity(entityId);
+  const [open, setOpen] = useState(false);
   const friendly =
     label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
@@ -50,11 +52,21 @@ export const ValueTile: FC<ValueTileProps> = ({ entityId, label, icon, precision
   const status: TileStatus = isNumeric ? evaluateStatus(raw, thresholds) : 'idle';
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon}>
-      <div className="value-tile__row">
-        <span className="value-tile__num">{display}</span>
-        {unit && <span className="value-tile__unit">{unit}</span>}
-      </div>
-    </BaseTile>
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} onClick={() => setOpen(true)}>
+        <div className="value-tile__row">
+          <span className="value-tile__num">{display}</span>
+          {unit && <span className="value-tile__unit">{unit}</span>}
+        </div>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={`${display}${unit ? ' ' + unit : ''}`}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };

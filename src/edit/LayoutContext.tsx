@@ -4,13 +4,13 @@ import {
 } from 'react';
 import type { LayoutItem } from './types';
 import { TILE_BY_TYPE } from './tileRegistry';
-import { defaultOverviewLayout } from './defaultLayouts';
+import { welcomeLayout, showcaseLayout } from './sampleLayouts';
 import { uid } from '../hass/uid';
 
 const STORAGE_KEY = 'realm:layout:overview';
-// v4: multi-tab system + per-tab alarm-entity list. v3 layouts auto-migrate
-// into the first tab.
-const LAYOUT_VERSION = 4;
+// v5: new installs ship with 2 tabs (Welcome + Demo). v4 layouts preserved
+// as-is; v3 (single items array) auto-migrates into one tab.
+const LAYOUT_VERSION = 5;
 
 export interface Tab {
   id: string;
@@ -35,6 +35,7 @@ interface LayoutContextValue {
   selectTile: (id: string | null) => void;
   // Tab management
   addTab: (name?: string) => void;
+  addTabWithLayout: (name: string, items: LayoutItem[]) => void;
   renameTab: (id: string, name: string) => void;
   deleteTab: (id: string) => void;
   switchTab: (id: string) => void;
@@ -51,8 +52,10 @@ interface LayoutContextValue {
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
 function freshDefault(): DashboardState {
-  const t: Tab = { id: uid(), name: 'Overview', items: defaultOverviewLayout(), alarmEntities: [] };
-  return { version: LAYOUT_VERSION, tabs: [t], activeTabId: t.id };
+  // New install: Welcome (active) + Demo. User can delete Demo if they want.
+  const welcome: Tab = { id: uid(), name: 'Welcome', items: welcomeLayout(), alarmEntities: [] };
+  const demo: Tab = { id: uid(), name: 'Demo', items: showcaseLayout(), alarmEntities: [] };
+  return { version: LAYOUT_VERSION, tabs: [welcome, demo], activeTabId: welcome.id };
 }
 
 function loadState(): DashboardState {
@@ -60,10 +63,12 @@ function loadState(): DashboardState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<DashboardState> & { items?: LayoutItem[] };
-      if (parsed.version === LAYOUT_VERSION && Array.isArray(parsed.tabs) && typeof parsed.activeTabId === 'string') {
-        return parsed as DashboardState;
+      // v4 and v5 share the same shape; treat v4 as still-valid so existing
+      // users don't get wiped when we bump the version.
+      if ((parsed.version === 5 || parsed.version === 4) && Array.isArray(parsed.tabs) && typeof parsed.activeTabId === 'string') {
+        return { ...parsed, version: LAYOUT_VERSION } as DashboardState;
       }
-      // Migrate v3 (single layout) → v4 (one-tab wrap)
+      // Migrate v3 (single layout) → wrap into one tab
       if (parsed.version === 3 && Array.isArray(parsed.items)) {
         const t: Tab = { id: uid(), name: 'Overview', items: parsed.items, alarmEntities: [] };
         return { version: LAYOUT_VERSION, tabs: [t], activeTabId: t.id };
@@ -107,6 +112,15 @@ export const LayoutProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const addTab = useCallback((name?: string) => {
     setState((prev) => {
       const t: Tab = { id: uid(), name: name ?? `Tab ${prev.tabs.length + 1}`, items: [], alarmEntities: [] };
+      return { ...prev, tabs: [...prev.tabs, t], activeTabId: t.id };
+    });
+    setSelectedTileId(null);
+  }, []);
+
+  // Create a new tab pre-populated with a sample layout. Used by SampleBrowser.
+  const addTabWithLayout = useCallback((name: string, items: LayoutItem[]) => {
+    setState((prev) => {
+      const t: Tab = { id: uid(), name, items, alarmEntities: [] };
       return { ...prev, tabs: [...prev.tabs, t], activeTabId: t.id };
     });
     setSelectedTileId(null);
@@ -219,14 +233,15 @@ export const LayoutProvider: FC<{ children: ReactNode }> = ({ children }) => {
       selectedTileId,
       setEditing: setIsEditing,
       selectTile: setSelectedTileId,
-      addTab, renameTab, deleteTab, switchTab,
+      addTab, addTabWithLayout, renameTab, deleteTab, switchTab,
       addTile, removeTile, duplicateTile, updateTile, reorderTiles,
       setActiveTabAlarmEntities,
       resetLayout,
     }),
     [state.tabs, state.activeTabId, activeTab, isEditing, selectedTileId,
-     addTab, renameTab, deleteTab, switchTab, addTile, removeTile, duplicateTile,
-     updateTile, reorderTiles, setActiveTabAlarmEntities, resetLayout],
+     addTab, addTabWithLayout, renameTab, deleteTab, switchTab,
+     addTile, removeTile, duplicateTile, updateTile, reorderTiles,
+     setActiveTabAlarmEntities, resetLayout],
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;

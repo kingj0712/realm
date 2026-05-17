@@ -1,7 +1,7 @@
-import type { FC, ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface CameraTileProps {
   entityId: string;
@@ -21,6 +21,7 @@ export const CameraTile: FC<CameraTileProps> = ({ entityId, label, icon, snapsho
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
   const [time, setTime] = useState(() => new Date());
   const [refreshKey, setRefreshKey] = useState(0);
+  const [open, setOpen] = useState(false);
 
   // Live timestamp overlay updates each second.
   useEffect(() => {
@@ -28,7 +29,8 @@ export const CameraTile: FC<CameraTileProps> = ({ entityId, label, icon, snapsho
     return () => clearInterval(t);
   }, []);
 
-  // Snapshot poller — bumps a cache-bust key so <img> re-fetches.
+  // Snapshot poller — bumps a cache-bust key so <img> re-fetches. In the modal
+  // we also want fresher frames, so the same key drives both views.
   useEffect(() => {
     if (!refreshSeconds || refreshSeconds <= 0) return;
     const t = setInterval(() => setRefreshKey((k) => k + 1), refreshSeconds * 1000);
@@ -48,33 +50,93 @@ export const CameraTile: FC<CameraTileProps> = ({ entityId, label, icon, snapsho
   const timeStr = time.toLocaleTimeString('en-US', { hour12: false });
   const baseUrl = snapshotUrl ?? (entity.attributes.entity_picture as string | undefined);
   const url = baseUrl ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}r=${refreshKey}` : null;
+  const brand = entity.attributes.brand as string | undefined;
+  const model = entity.attributes.model_name as string | undefined;
+  const motionDetected = entity.attributes.motion_detected as boolean | undefined;
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon} pill={pill}>
-      <div className="camera-tile">
-        <div className="camera-tile__viewport">
-          {url ? (
-            <img className="camera-tile__img" src={url} alt={friendly} />
-          ) : (
-            <div className="camera-tile__placeholder">NO SIGNAL</div>
-          )}
-          {/* Corner brackets */}
-          <span className="camera-tile__corner camera-tile__corner--tl" />
-          <span className="camera-tile__corner camera-tile__corner--tr" />
-          <span className="camera-tile__corner camera-tile__corner--bl" />
-          <span className="camera-tile__corner camera-tile__corner--br" />
-          {/* Overlay */}
-          <div className="camera-tile__overlay">
-            {entity.state === 'recording' && (
-              <span className="camera-tile__rec">
-                <span className="camera-tile__rec-dot" />
-                REC
-              </span>
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} pill={pill} onClick={() => setOpen(true)}>
+        <div className="camera-tile">
+          <div className="camera-tile__viewport">
+            {url ? (
+              <img className="camera-tile__img" src={url} alt={friendly} />
+            ) : (
+              <div className="camera-tile__placeholder">NO SIGNAL</div>
             )}
-            <span className="camera-tile__time">{timeStr}</span>
+            {/* Corner brackets */}
+            <span className="camera-tile__corner camera-tile__corner--tl" />
+            <span className="camera-tile__corner camera-tile__corner--tr" />
+            <span className="camera-tile__corner camera-tile__corner--bl" />
+            <span className="camera-tile__corner camera-tile__corner--br" />
+            {/* Overlay */}
+            <div className="camera-tile__overlay">
+              {entity.state === 'recording' && (
+                <span className="camera-tile__rec">
+                  <span className="camera-tile__rec-dot" />
+                  REC
+                </span>
+              )}
+              <span className="camera-tile__time">{timeStr}</span>
+            </div>
           </div>
         </div>
-      </div>
-    </BaseTile>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={pill}
+          onClose={() => setOpen(false)}
+        >
+          <div className="camera-detail">
+            <div className="camera-detail__viewport">
+              {url ? (
+                <img className="camera-detail__img" src={url} alt={friendly} />
+              ) : (
+                <div className="camera-detail__placeholder">NO SIGNAL</div>
+              )}
+              <div className="camera-detail__overlay">
+                {entity.state === 'recording' && (
+                  <span className="camera-tile__rec">
+                    <span className="camera-tile__rec-dot" />
+                    REC
+                  </span>
+                )}
+                <span className="camera-tile__time">{timeStr}</span>
+              </div>
+            </div>
+            <div className="camera-detail__meta">
+              <div className="camera-detail__meta-row">
+                <span className="camera-detail__meta-label">STATE</span>
+                <span className="camera-detail__meta-value">{entity.state}</span>
+              </div>
+              {brand && (
+                <div className="camera-detail__meta-row">
+                  <span className="camera-detail__meta-label">BRAND</span>
+                  <span className="camera-detail__meta-value">{brand}</span>
+                </div>
+              )}
+              {model && (
+                <div className="camera-detail__meta-row">
+                  <span className="camera-detail__meta-label">MODEL</span>
+                  <span className="camera-detail__meta-value">{model}</span>
+                </div>
+              )}
+              {motionDetected != null && (
+                <div className="camera-detail__meta-row">
+                  <span className="camera-detail__meta-label">MOTION</span>
+                  <span className="camera-detail__meta-value">{motionDetected ? 'DETECTED' : 'CLEAR'}</span>
+                </div>
+              )}
+              <div className="camera-detail__meta-row">
+                <span className="camera-detail__meta-label">REFRESH</span>
+                <span className="camera-detail__meta-value">{refreshSeconds ? `${refreshSeconds}s` : 'manual'}</span>
+              </div>
+            </div>
+          </div>
+        </EntityDetailModal>
+      )}
+    </>
   );
 };

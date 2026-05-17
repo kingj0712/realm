@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface BarTileProps {
   entityId: string;
@@ -39,6 +40,7 @@ export const BarTile: FC<BarTileProps> = ({
   thresholds,
 }) => {
   const entity = useEntity(entityId);
+  const [open, setOpen] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
   if (!entity) {
@@ -59,23 +61,33 @@ export const BarTile: FC<BarTileProps> = ({
     : 0;
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon}>
-      <div className="bar-tile">
-        <div className="bar-tile__value">
-          <span className="bar-tile__num">{display}</span>
-          {unit && <span className="bar-tile__unit">{unit}</span>}
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} onClick={() => setOpen(true)}>
+        <div className="bar-tile">
+          <div className="bar-tile__value">
+            <span className="bar-tile__num">{display}</span>
+            {unit && <span className="bar-tile__unit">{unit}</span>}
+          </div>
+          <div className={`bar-tile__track bar-tile__track--${status}`}>
+            <div className="bar-tile__fill" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="bar-tile__scale">
+            <span>{min}</span>
+            <span>
+              {max}
+              {unit}
+            </span>
+          </div>
         </div>
-        <div className={`bar-tile__track bar-tile__track--${status}`}>
-          <div className="bar-tile__fill" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="bar-tile__scale">
-          <span>{min}</span>
-          <span>
-            {max}
-            {unit}
-          </span>
-        </div>
-      </div>
-    </BaseTile>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={`${display}${unit ? ' ' + unit : ''}`}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };
