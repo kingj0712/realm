@@ -5,6 +5,7 @@ import { createMockStore, type HassStore } from './hass';
 import type { HassEntity } from './types';
 import tokensCss from './styles/tokens.css?inline';
 import componentsCss from './styles/components.css?inline';
+import { setModalPortalRoot } from './components/ModalPortal';
 // react-grid-layout ships its own stylesheets — pull them as ?inline so they
 // land inside our Shadow DOM along with the rest of Realm's CSS.
 import rglCss from 'react-grid-layout/css/styles.css?inline';
@@ -138,6 +139,11 @@ class RealmPanel extends HTMLElement {
     this.mountNode = document.createElement('div');
     this.mountNode.id = 'realm-root';
     shadow.appendChild(this.mountNode);
+
+    const modalRoot = document.createElement('div');
+    modalRoot.id = 'realm-modal-root';
+    shadow.appendChild(modalRoot);
+    setModalPortalRoot(modalRoot);
 
     this.root = createRoot(this.mountNode);
     this.root.render(

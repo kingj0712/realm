@@ -85,7 +85,7 @@ Realm ships with a companion HA theme (`themes/realm_dark.yaml` in the author's 
 
 ## Status
 
-Active development. The author posts incremental rounds of work. See `WIKI.md` section 9.0 for the changelog. Recent rounds (7 to 13): react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, detail modals, first-run Welcome layout, sample dashboard library, live HA entity overlay, modal portal fixes, live/demo entity picker labels, live HA history, and layout export/import.
+Active development. The author posts incremental rounds of work. See `WIKI.md` section 9.0 for the changelog. Recent rounds (7 to 13.1): react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, detail modals, first-run Welcome layout, sample dashboard library, live HA entity overlay, modal portal fixes, live/demo entity picker labels, live HA history, and layout export/import.
 
 ## Keyboard shortcuts
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useHass } from './HassProvider';
 import { useEntity } from './useEntity';
 
@@ -9,20 +9,16 @@ export function useHistory(entityId: string, points: number = 24): number[] {
   const store = useHass();
   const entity = useEntity(entityId);
   const lastChanged = entity?.last_changed;
-  const initial = useMemo(
-    () => store.getHistory(entityId, points),
-    [store, entityId, points, lastChanged],
-  );
-  const [history, setHistory] = useState<number[]>(initial);
+  const [history, setHistory] = useState<number[]>(() => store.getHistory(entityId, points));
 
   useEffect(() => {
     let cancelled = false;
-    setHistory(initial);
+    setHistory(store.getHistory(entityId, points));
     store.loadHistory(entityId, points).then((next) => {
       if (!cancelled) setHistory(next);
     });
     return () => { cancelled = true; };
-  }, [store, entityId, points, lastChanged, initial]);
+  }, [store, entityId, points, lastChanged]);
 
   return history;
 }
