@@ -179,19 +179,21 @@ export function smartHomeStarterLayout(): LayoutItem[] {
   return tiles.map(buildItem);
 }
 
-// Property/outdoor-systems flavor: weather radar, fuel/propane tanks,
-// generator, irrigation, beehive, plus a trends band. Four sections,
-// sized for the homestead operator who watches systems. Explicit x/y/w/h
-// for the same row-alignment reasons as Smart Home Starter.
+// Property/utility/operations flavor: tanks, generator, water-system
+// alarms, irrigation, beehive, weather digest, trend charts, network gear.
+// Five sections, SCADA-leaning. WeatherRadar deliberately omitted: its
+// placeholder dominates above-the-fold without a real iframe URL, and
+// users can add it back from the palette once they have an embed link.
 export function homesteadOpsLayout(): LayoutItem[] {
   const tiles: TileSpec[] = [
     // ===== OPERATIONS (y=0..13) =====
-    // Weather hero + radar embed dominate. Right column stacks a wind
-    // compass + outdoor humidity readout so WindCompass isn't a single
-    // dial floating in dead space.
+    // Weather hero (left) + WeeklyDigest sample text (center) + a stacked
+    // WindCompass/Humidity column (right). Text density on the digest
+    // balances the visual weight of Weather and gives the row content
+    // rather than just a radar placeholder.
     H('OPERATIONS', 'info', 0, 0),
     T('WeatherTile', 0, 2, 4, 11),
-    T('WeatherRadarTile', 4, 2, 5, 11),
+    T('WeeklyDigestTile', 4, 2, 5, 11, { demo: true, label: 'OPERATIONS BRIEF' }),
     T('WindCompassTile', 9, 2, 3, 7),
     T('ValueTile', 9, 9, 3, 4, {
       entityId: 'sensor.outdoor_humidity', precision: 0,
@@ -199,26 +201,46 @@ export function homesteadOpsLayout(): LayoutItem[] {
     }),
 
     // ===== POWER & WATER (y=13..25) =====
-    // Four matched tiles at w=3 h=10. Tanks first (fuel + propane), then
-    // generator status, then a compact energy flow diagram.
+    // Fuel + propane + generator are the three large operational tiles.
+    // Right column stacks two alarms (sump high water + water leak) so
+    // it isn't a fourth empty large tile. EnergyFlow lives in Showcase;
+    // this section is about utility-state telemetry, not energy mix.
     H('POWER & WATER', 'ok', 0, 13),
     T('TankTile', 0, 15, 3, 10),
     T('TankTile', 3, 15, 3, 10, { entityId: 'sensor.propane_level', icon: 'mdiBarrel', capacity: '500 GAL' }),
     T('GeneratorTile', 6, 15, 3, 10),
-    T('EnergyFlowTile', 9, 15, 3, 10),
+    T('AlarmTile', 9, 15, 3, 5, {
+      entityId: 'binary_sensor.sump_high_water', icon: 'mdiWaterAlert', label: 'SUMP HIGH',
+    }),
+    T('AlarmTile', 9, 20, 3, 5, {
+      entityId: 'binary_sensor.water_leak_basement', icon: 'mdiWaterAlert', label: 'WATER LEAK',
+    }),
 
-    // ===== LAND & ANIMALS (y=25..36) =====
-    // Three equal tiles. Irrigation zones + hive vitals + mailbox.
+    // ===== LAND & ANIMALS (y=25..37) =====
+    // Irrigation zones + hive vitals get matched 4-wide cells. Right
+    // column pairs Mailbox + TrashSchedule (both compact-content tiles)
+    // stacked so neither floats alone in a tall box.
     H('LAND & ANIMALS', 'warn', 0, 25),
-    T('IrrigationTile', 0, 27, 4, 9),
-    T('BeehiveTile', 4, 27, 4, 9),
-    T('MailboxTile', 8, 27, 4, 9),
+    T('IrrigationTile', 0, 27, 4, 10),
+    T('BeehiveTile', 4, 27, 4, 10),
+    T('MailboxTile', 8, 27, 4, 5),
+    T('TrashScheduleTile', 8, 32, 4, 5),
 
-    // ===== TRENDS (y=36..48) =====
-    // Symmetric line chart + history bars. h=10 gives axes room.
-    H('TRENDS', 'info', 0, 36),
-    T('PlotTile', 0, 38, 6, 10),
-    T('HistoryBarsTile', 6, 38, 6, 10),
+    // ===== TRENDS (y=37..49) =====
+    // Line chart hero + history bars + heatmap. All h=10 so axes have
+    // room without anything reading as oversized.
+    H('TRENDS', 'info', 0, 37),
+    T('PlotTile', 0, 39, 6, 10),
+    T('HistoryBarsTile', 6, 39, 3, 10),
+    T('HeatmapTile', 9, 39, 3, 10),
+
+    // ===== SYSTEMS (y=49..59) =====
+    // Operational network/storage telemetry. h=8 matches Showcase Systems.
+    H('SYSTEMS', 'info', 0, 49),
+    T('NetworkTile', 0, 51, 3, 8),
+    T('SpeedTestTile', 3, 51, 3, 8),
+    T('NASTile', 6, 51, 3, 8),
+    T('HomelabTile', 9, 51, 3, 8),
   ];
   return tiles.map(buildItem);
 }
@@ -376,13 +398,13 @@ export const SAMPLE_LAYOUTS: SampleLayout[] = [
   {
     id: 'smart-home',
     name: 'Smart Home Starter',
-    description: 'Essentials only: presence, weather, climate, security, lights, scenes. A good base to fork from for a typical install.',
+    description: 'Compact 5-section dashboard for a typical install: Home, Climate, Security, Controls, Systems. Sized for "above the fold" usefulness; fork from here for everyday rooms.',
     build: smartHomeStarterLayout,
   },
   {
     id: 'homestead',
     name: 'Homestead Ops',
-    description: 'Property-systems flavor: tanks, generator, irrigation, beehive, weather radar, trend plots.',
+    description: 'SCADA-leaning operations board for property/utility/homestead monitoring: weather brief, tanks + generator + water alarms, irrigation + hive + mail/trash, trend charts, network gear. Five sections aligned for view mode.',
     build: homesteadOpsLayout,
   },
   {
