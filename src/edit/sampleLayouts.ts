@@ -97,60 +97,130 @@ export function welcomeLayout(): LayoutItem[] {
   ]);
 }
 
-// Smart-home essentials: presence, weather, locks, lights, thermostat, a
-// camera. Generic enough to be useful on most installs after a quick
-// entity remap.
+// Smart-home essentials in five sections: HOME, CLIMATE, SECURITY,
+// CONTROLS, SYSTEMS. About half the size of Showcase, sized to be
+// immediately useful on most installs after a quick REMAP pass. Like
+// Showcase, this uses explicit x/y/w/h so heights cluster per band and
+// rows align horizontally; pack()'s reading-order wrap was producing
+// ragged rows.
 export function smartHomeStarterLayout(): LayoutItem[] {
-  return pack([
-    { type: 'HeaderTile', w: 12, h: 2, props: { text: 'HOME', accent: 'info' } },
-    { type: 'ClockTile', w: 3 },
-    { type: 'WeatherTile', w: 3 },
-    { type: 'PresenceListTile', w: 3 },
-    { type: 'SunMoonTile', w: 3 },
+  const tiles: TileSpec[] = [
+    // ===== HOME (y=0..13) =====
+    // Weather hero + presence list + a stacked SunMoon/Clock column.
+    // Compact for "above the fold" without sacrificing the 3-day forecast.
+    H('HOME', 'info', 0, 0),
+    T('WeatherTile', 0, 2, 5, 11),
+    T('PresenceListTile', 5, 2, 4, 11, {
+      label: 'PRESENCE', icon: 'mdiAccountGroup',
+      personIds: ['person.user_1', 'person.user_2', 'person.guest'],
+    }),
+    T('SunMoonTile', 9, 2, 3, 7),
+    T('ClockTile', 9, 9, 3, 4),
 
-    { type: 'HeaderTile', w: 12, h: 2, props: { text: 'CLIMATE', accent: 'ok' } },
-    { type: 'ClimateThermostatTile', w: 4 },
-    { type: 'GaugeTile', w: 4 },
-    { type: 'DonutTile', w: 4 },
+    // ===== CLIMATE (y=13..27) =====
+    // Hero thermostat + boiler gauge fill the left two-thirds. Right
+    // column stacks a UPS battery bar + an outdoor-temp value so the
+    // section has both a control surface and a quick readout pair.
+    H('CLIMATE', 'ok', 0, 13),
+    T('ClimateThermostatTile', 0, 15, 4, 12),
+    T('GaugeTile', 4, 15, 4, 12),
+    T('BarTile', 8, 15, 4, 6),
+    T('ValueTile', 8, 21, 4, 6, {
+      entityId: 'sensor.outdoor_temperature', precision: 0,
+      icon: 'mdiThermometer', label: 'OUTDOOR TEMP',
+    }),
 
-    { type: 'HeaderTile', w: 12, h: 2, props: { text: 'SECURITY', accent: 'warn' } },
-    { type: 'StatusListTile', w: 4 },
-    { type: 'CameraTile', w: 4 },
-    { type: 'AlarmTile', w: 4 },
+    // ===== SECURITY (y=27..40) =====
+    // Door status + camera + a stacked alarm pair. Camera widens to w=5
+    // so the 16:9 viewport reads as the hero, same as Showcase Security.
+    H('SECURITY', 'warn', 0, 27),
+    T('StatusListTile', 0, 29, 4, 11, {
+      label: 'ENTRY POINTS', icon: 'mdiDoor',
+      entries: [
+        { entityId: 'binary_sensor.front_door',  label: 'FRONT',  stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
+        { entityId: 'binary_sensor.back_door',   label: 'BACK',   stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
+        { entityId: 'binary_sensor.garage_door', label: 'GARAGE', stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
+      ],
+    }),
+    T('CameraTile', 4, 29, 5, 11, {
+      entityId: 'camera.front_porch', icon: 'mdiCamera', placeholderLabel: 'FRONT PORCH',
+    }),
+    T('AlarmTile', 9, 29, 3, 5, {
+      entityId: 'binary_sensor.smoke_basement', icon: 'mdiSmokeDetectorVariant', label: 'SMOKE',
+    }),
+    T('AlarmTile', 9, 34, 3, 6, {
+      entityId: 'binary_sensor.water_leak_basement', icon: 'mdiWaterAlert', label: 'WATER LEAK',
+    }),
 
-    { type: 'HeaderTile', w: 12, h: 2, props: { text: 'LIGHTING & SCENES', accent: 'info' } },
-    { type: 'ToggleTile', w: 3 },
-    { type: 'SliderTile', w: 3 },
-    { type: 'ColorPickerTile', w: 3 },
-    { type: 'SceneButtonTile', w: 3 },
-  ]);
+    // ===== CONTROLS (y=40..49) =====
+    // Three matched control tiles at w=4 h=7. Garage button confirms
+    // before firing (cover ops are consequential); LightFan + Blinds
+    // are quick toggles.
+    H('CONTROLS', 'info', 0, 40),
+    T('ButtonTile', 0, 42, 4, 7, {
+      entityId: 'cover.garage_door', icon: 'mdiGarage', buttonText: 'OPERATE',
+      states: {
+        open:   { pill: 'OPEN',   status: 'warn', buttonText: 'CLOSE' },
+        closed: { pill: 'CLOSED', status: 'ok',   buttonText: 'OPEN' },
+      },
+      confirmBeforeAction: true,
+      confirmMessage: 'Operate the garage door?',
+    }),
+    T('LightFanTile', 4, 42, 4, 7),
+    T('BlindsTile', 8, 42, 4, 7),
+
+    // ===== SYSTEMS (y=49..59) =====
+    // Three equal tiles. Same h=8 as Showcase Systems row.
+    H('SYSTEMS', 'info', 0, 49),
+    T('NetworkTile', 0, 51, 4, 8),
+    T('NASTile', 4, 51, 4, 8),
+    T('SpeedTestTile', 8, 51, 4, 8),
+  ];
+  return tiles.map(buildItem);
 }
 
-// Property/outdoor-systems flavor: tanks, generator, irrigation, beehive,
-// weather radar. Built for the kind of operator who watches systems, not
-// just toggles lights.
+// Property/outdoor-systems flavor: weather radar, fuel/propane tanks,
+// generator, irrigation, beehive, plus a trends band. Four sections,
+// sized for the homestead operator who watches systems. Explicit x/y/w/h
+// for the same row-alignment reasons as Smart Home Starter.
 export function homesteadOpsLayout(): LayoutItem[] {
-  return pack([
-    { type: 'HeaderTile', w: 12, h: 2, props: { text: 'OPERATIONS', accent: 'info' } },
-    { type: 'WeatherTile', w: 3 },
-    { type: 'WeatherRadarTile', w: 6 },
-    { type: 'WindCompassTile', w: 3 },
+  const tiles: TileSpec[] = [
+    // ===== OPERATIONS (y=0..13) =====
+    // Weather hero + radar embed dominate. Right column stacks a wind
+    // compass + outdoor humidity readout so WindCompass isn't a single
+    // dial floating in dead space.
+    H('OPERATIONS', 'info', 0, 0),
+    T('WeatherTile', 0, 2, 4, 11),
+    T('WeatherRadarTile', 4, 2, 5, 11),
+    T('WindCompassTile', 9, 2, 3, 7),
+    T('ValueTile', 9, 9, 3, 4, {
+      entityId: 'sensor.outdoor_humidity', precision: 0,
+      icon: 'mdiWaterPercent', label: 'OUTDOOR HUMIDITY',
+    }),
 
-    { type: 'HeaderTile', w: 12, h: 2, props: { text: 'POWER & WATER', accent: 'ok' } },
-    { type: 'TankTile', w: 3 },
-    { type: 'TankTile', w: 3, props: { entityId: 'sensor.propane_level', icon: 'mdiBarrel', capacity: '500 GAL' } },
-    { type: 'GeneratorTile', w: 3 },
-    { type: 'EnergyFlowTile', w: 3 },
+    // ===== POWER & WATER (y=13..25) =====
+    // Four matched tiles at w=3 h=10. Tanks first (fuel + propane), then
+    // generator status, then a compact energy flow diagram.
+    H('POWER & WATER', 'ok', 0, 13),
+    T('TankTile', 0, 15, 3, 10),
+    T('TankTile', 3, 15, 3, 10, { entityId: 'sensor.propane_level', icon: 'mdiBarrel', capacity: '500 GAL' }),
+    T('GeneratorTile', 6, 15, 3, 10),
+    T('EnergyFlowTile', 9, 15, 3, 10),
 
-    { type: 'HeaderTile', w: 12, h: 2, props: { text: 'LAND & ANIMALS', accent: 'warn' } },
-    { type: 'IrrigationTile', w: 4 },
-    { type: 'BeehiveTile', w: 4 },
-    { type: 'MailboxTile', w: 4 },
+    // ===== LAND & ANIMALS (y=25..36) =====
+    // Three equal tiles. Irrigation zones + hive vitals + mailbox.
+    H('LAND & ANIMALS', 'warn', 0, 25),
+    T('IrrigationTile', 0, 27, 4, 9),
+    T('BeehiveTile', 4, 27, 4, 9),
+    T('MailboxTile', 8, 27, 4, 9),
 
-    { type: 'HeaderTile', w: 12, h: 2, props: { text: 'TRENDS', accent: 'info' } },
-    { type: 'PlotTile', w: 6 },
-    { type: 'HistoryBarsTile', w: 6 },
-  ]);
+    // ===== TRENDS (y=36..48) =====
+    // Symmetric line chart + history bars. h=10 gives axes room.
+    H('TRENDS', 'info', 0, 36),
+    T('PlotTile', 0, 38, 6, 10),
+    T('HistoryBarsTile', 6, 38, 6, 10),
+  ];
+  return tiles.map(buildItem);
 }
 
 // Showcase layout: curated, polished example of what a finished Realm
@@ -268,7 +338,7 @@ export function showcaseLayout(): LayoutItem[] {
   return tiles().map((spec) => buildItem(spec));
 }
 
-// ---- Internal helpers used only by showcaseLayout -----------------------
+// ---- Helpers used by the curated layouts (showcase + smart-home + homestead) -----
 
 // Section header — full width, short h=2 band. accent maps to HeaderTile prop.
 function H(text: string, accent: string, x: number, y: number): TileSpec {
