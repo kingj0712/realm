@@ -6,7 +6,8 @@ interface WeeklyDigestTileProps {
   label?: string;
   icon?: ReactNode;
   // Endpoint that returns either JSON ({ title, date, content/text/body }) or plain text.
-  // Default targets homestead-hq.
+  // Empty by default; the tile falls back to the SAMPLE digest below until you
+  // point it at a real endpoint in the inspector.
   url?: string;
   refreshMinutes?: number;
   // When true, the tile skips the fetch entirely and renders a designed
@@ -15,28 +16,30 @@ interface WeeklyDigestTileProps {
   demo?: boolean;
 }
 
-// Friendly placeholder content used in demo mode and on hosts where the
-// homestead-hq endpoint isn't reachable. Tagged as SAMPLE in the UI so users
-// don't think the data is real.
-const SAMPLE_DIGEST = `Week of May 12 — Casco Township
+// Generic-flavored placeholder content. Anything specific is clearly a
+// "for example" — this is what a finished digest could look like, not a
+// real one. Tagged as SAMPLE in the UI so users don't mistake it for data.
+const SAMPLE_DIGEST = `Sample Weekly Digest
 
 Weather:
-  Highs in the upper 60s, lows around 48. Two thunderstorms Wed/Thu
-  dropped 1.4 in of rain. Garden beds saturated, no irrigation needed.
+  Mild week overall, highs in the mid 60s. A pair of thunderstorms
+  midweek delivered enough rain that no irrigation was needed.
 
 Yields:
-  Chicken eggs: 41 (avg 5.9/day)
-  Beehive #1 weight gain: +2.8 lb (good flow on basswood)
-  First strawberries ripening — pick by Saturday.
+  Hens: 41 eggs (avg 5.9/day)
+  Beehive #1 weight gain: +2.8 lb
+  First strawberries ripening soon.
 
 Systems:
-  Generator self-test passed Sunday 03:00. Fuel at 78%.
+  Generator self-test passed early Sunday. Fuel at 78%.
   Sump cycled 14 times during the storm; high-water alarm did not trigger.
-  Starlink uptime 99.96%. UDM rebooted Thursday for firmware.
+  WAN uptime 99.96%. Router rebooted Thursday for firmware.
 
 Coming up:
-  Tractor service due (~340 hr). Order replacement air filter.
-  Mow front pasture before holiday weekend.`;
+  Equipment service due. Order replacement filters.
+  Field mowing before the weekend.
+
+(Configure URL in the inspector to replace this sample with live content.)`;
 
 interface DigestPayload {
   title?: string;
@@ -50,16 +53,20 @@ interface DigestPayload {
 export const WeeklyDigestTile: FC<WeeklyDigestTileProps> = ({
   label = 'WEEKLY DIGEST',
   icon,
-  url = 'http://homestead-hq.local:3000/api/digest/weekly',
+  url = '',
   refreshMinutes = 60,
   demo = false,
 }) => {
+  // A blank URL is treated the same as demo mode: the tile renders the SAMPLE
+  // digest instead of trying (and failing) to fetch a hallucinated host.
+  const sampleMode = demo || !url.trim();
+
   const [data, setData] = useState<DigestPayload | null>(null);
-  const [loading, setLoading] = useState(!demo);
+  const [loading, setLoading] = useState(!sampleMode);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (demo) return undefined; // Skip fetch entirely in demo mode.
+    if (sampleMode) return undefined; // Skip fetch entirely; render SAMPLE.
     let cancelled = false;
     async function fetchDigest() {
       try {
@@ -96,9 +103,9 @@ export const WeeklyDigestTile: FC<WeeklyDigestTileProps> = ({
     fetchDigest();
     const t = setInterval(fetchDigest, Math.max(1, refreshMinutes) * 60_000);
     return () => { cancelled = true; clearInterval(t); };
-  }, [url, refreshMinutes, demo]);
+  }, [url, refreshMinutes, sampleMode]);
 
-  if (demo) {
+  if (sampleMode) {
     return (
       <BaseTile label={label} icon={icon} status="info" pill="SAMPLE">
         <div className="digest-tile">
@@ -119,7 +126,7 @@ export const WeeklyDigestTile: FC<WeeklyDigestTileProps> = ({
         {error && (
           <div className="digest-tile__error">
             <div className="digest-tile__error-msg">{error}</div>
-            <div className="digest-tile__error-hint">homestead-hq must allow CORS from this origin.</div>
+            <div className="digest-tile__error-hint">Endpoint must allow CORS from this origin.</div>
           </div>
         )}
         {data && <div className="digest-tile__content">{data.content}</div>}

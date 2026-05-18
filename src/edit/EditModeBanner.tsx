@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent, type FC } from 'react';
+import { useRef, type ChangeEvent, type FC, type ReactNode } from 'react';
 import { useLayout } from './LayoutContext';
 
 interface EditModeBannerProps {
@@ -10,7 +10,19 @@ interface EditModeBannerProps {
   onBuildFromHA: () => void;
 }
 
-export const EditModeBanner: FC<EditModeBannerProps> = ({ onAddTile, onConfigureAlarms, onOpenTemplates, onOpenRemap, onOpenSnapshots, onBuildFromHA }) => {
+// Grouped edit-mode toolbar. Buttons are clustered by intent so the toolbar
+// scans calmly even with ten actions:
+//   Add (Tile / Templates / Build From HA) | Configure (Remap / Alarms)
+//   Backup (Snapshots / Export / Import)    | Danger (Reset) | Done
+// All callbacks and underlying flows are unchanged from the flat layout.
+export const EditModeBanner: FC<EditModeBannerProps> = ({
+  onAddTile,
+  onConfigureAlarms,
+  onOpenTemplates,
+  onOpenRemap,
+  onOpenSnapshots,
+  onBuildFromHA,
+}) => {
   const { isEditing, setEditing, resetLayout, exportLayout, importLayout } = useLayout();
   const fileInputRef = useRef<HTMLInputElement>(null);
   if (!isEditing) return null;
@@ -45,20 +57,32 @@ export const EditModeBanner: FC<EditModeBannerProps> = ({ onAddTile, onConfigure
   };
 
   return (
-    <div className="edit-banner">
-      <span className="edit-banner__label">EDITING</span>
-      <span className="edit-banner__hint">Drag handle · Click tile to edit · Drop wherever</span>
+    <div className="edit-banner" data-testid="edit-banner">
+      <div className="edit-banner__lead">
+        <span className="edit-banner__label">EDITING</span>
+        <span className="edit-banner__hint">Drag handle · Click tile to edit · Drop wherever</span>
+      </div>
       <div className="edit-banner__actions">
-        <button type="button" className="edit-banner__btn edit-banner__btn--primary" onClick={onAddTile}>+ ADD TILE</button>
-        <button type="button" className="edit-banner__btn" onClick={onOpenTemplates}>TEMPLATES</button>
-        <button type="button" className="edit-banner__btn" onClick={onBuildFromHA}>BUILD FROM HA</button>
-        <button type="button" className="edit-banner__btn" onClick={onOpenRemap}>REMAP</button>
-        <button type="button" className="edit-banner__btn" onClick={onConfigureAlarms}>ALARMS</button>
-        <button type="button" className="edit-banner__btn" onClick={onOpenSnapshots}>SNAPSHOTS</button>
-        <button type="button" className="edit-banner__btn" onClick={onExport}>EXPORT</button>
-        <button type="button" className="edit-banner__btn" onClick={() => fileInputRef.current?.click()}>IMPORT</button>
-        <button type="button" className="edit-banner__btn" onClick={onReset}>RESET</button>
-        <button type="button" className="edit-banner__btn edit-banner__btn--done" onClick={() => setEditing(false)}>DONE</button>
+        <ActionGroup label="ADD">
+          <button type="button" className="edit-banner__btn edit-banner__btn--primary" onClick={onAddTile} data-testid="edit-add-tile">+ TILE</button>
+          <button type="button" className="edit-banner__btn" onClick={onOpenTemplates} data-testid="edit-templates">TEMPLATES</button>
+          <button type="button" className="edit-banner__btn" onClick={onBuildFromHA} data-testid="edit-build-from-ha">BUILD FROM HA</button>
+        </ActionGroup>
+        <ActionGroup label="CONFIGURE">
+          <button type="button" className="edit-banner__btn" onClick={onOpenRemap} data-testid="edit-remap">REMAP</button>
+          <button type="button" className="edit-banner__btn" onClick={onConfigureAlarms} data-testid="edit-alarms">ALARMS</button>
+        </ActionGroup>
+        <ActionGroup label="BACKUP">
+          <button type="button" className="edit-banner__btn" onClick={onOpenSnapshots} data-testid="edit-snapshots">SNAPSHOTS</button>
+          <button type="button" className="edit-banner__btn" onClick={onExport} data-testid="edit-export">EXPORT</button>
+          <button type="button" className="edit-banner__btn" onClick={() => fileInputRef.current?.click()} data-testid="edit-import">IMPORT</button>
+        </ActionGroup>
+        <ActionGroup label="DANGER" tone="danger">
+          <button type="button" className="edit-banner__btn edit-banner__btn--danger" onClick={onReset} data-testid="edit-reset">RESET</button>
+        </ActionGroup>
+        <div className="edit-banner__group edit-banner__group--done">
+          <button type="button" className="edit-banner__btn edit-banner__btn--done" onClick={() => setEditing(false)} data-testid="edit-done">DONE</button>
+        </div>
       </div>
       <input
         ref={fileInputRef}
@@ -70,3 +94,10 @@ export const EditModeBanner: FC<EditModeBannerProps> = ({ onAddTile, onConfigure
     </div>
   );
 };
+
+const ActionGroup: FC<{ label: string; tone?: 'default' | 'danger'; children: ReactNode }> = ({ label, tone = 'default', children }) => (
+  <div className={`edit-banner__group${tone === 'danger' ? ' edit-banner__group--danger' : ''}`}>
+    <span className="edit-banner__group-label">{label}</span>
+    <div className="edit-banner__group-actions">{children}</div>
+  </div>
+);

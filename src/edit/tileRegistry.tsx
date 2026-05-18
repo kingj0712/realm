@@ -849,11 +849,11 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   },
   {
     type: 'WeatherRadarTile', name: 'Weather Radar', category: 'Visualization',
-    description: 'Embedded weather radar (defaults to Casco Twp, MI windy.com embed).',
+    description: 'Iframe slot for an external weather radar (windy.com, RainViewer, NOAA, etc.). Empty by default — paste your embed URL in the inspector.',
     defaultColSpan: 6, defaultRowSpan: 13,
     defaultProps: {
       label: 'RADAR', icon: 'mdiWeatherPouring',
-      iframeUrl: 'https://embed.windy.com/embed2.html?lat=42.82&lon=-82.54&detailLat=42.82&detailLon=-82.54&width=650&height=450&zoom=8&level=surface&overlay=radar&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=mph&metricTemp=%C2%B0F&radarRange=-1',
+      iframeUrl: '',
     },
     schema: {
       label: { kind: 'string', label: 'Label' },
@@ -914,13 +914,13 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   },
   {
     type: 'WeeklyDigestTile', name: 'Weekly Digest', category: 'Info',
-    description: 'Pulls weekly digest text from a custom endpoint (e.g. homestead-hq). Needs CORS on the server. Set the URL in the inspector.',
+    description: 'Pulls weekly digest text from a custom endpoint. Default URL is empty so a SAMPLE digest renders out of the box; set your own URL in the inspector. Server must allow CORS from the HA origin.',
     defaultColSpan: 4, defaultRowSpan: 13,
-    defaultProps: { label: 'WEEKLY DIGEST', icon: 'mdiViewDashboard', url: 'http://homestead-hq.local:3000/api/digest/weekly', refreshMinutes: 60 },
+    defaultProps: { label: 'WEEKLY DIGEST', icon: 'mdiViewDashboard', url: '', refreshMinutes: 60, demo: true },
     schema: {
       label: { kind: 'string', label: 'Label', optional: true },
       icon: { kind: 'icon', label: 'Icon', optional: true },
-      url: { kind: 'string', label: 'URL', hint: 'http://homestead-hq.local:3000/api/digest/weekly' },
+      url: { kind: 'string', label: 'URL', optional: true, hint: 'e.g. http://my-host.local:3000/api/digest/weekly (leave blank to show SAMPLE)' },
       refreshMinutes: { kind: 'number', label: 'Refresh (min)', optional: true },
       demo: { kind: 'boolean', label: 'Demo mode (skip fetch, show sample)', optional: true },
     },

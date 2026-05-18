@@ -1,6 +1,9 @@
-// Mock data for offline development and demo. Many entity IDs and friendly
-// names reflect the author's own setup as concrete examples — replace with
-// your own entities or wire to a real HassStore (see phase-6+ TODO in WIKI.md).
+// Demo entity pool used for local development and as the seed pool inside
+// Home Assistant. When Realm runs under HA, `HassStore.syncFromLive()`
+// overlays the live `hass.states` on top of these so real entities win on
+// entity-id collisions; demo entries fill any gaps so unmapped tiles stay
+// interactive. Edit-mode REMAP and BUILD FROM HA help swap these demo IDs
+// for real ones. See WIKI sections 5 and 9 for the live/demo data model.
 import type { HassEntity } from '../types';
 import { HassStore } from './HassStore';
 import { uid } from './uid';

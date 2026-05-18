@@ -1973,13 +1973,22 @@
   top: 0;
   z-index: 50;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   margin-bottom: var(--space-3);
   background: var(--surface-container-high);
   border: 1px solid var(--status-warn-border);
   border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+.edit-banner__lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 0 1 auto;
+  padding-top: 14px; /* aligns label with the group-label tier above the buttons */
 }
 .edit-banner__label {
   font: var(--type-label);
@@ -1989,9 +1998,37 @@
 .edit-banner__hint {
   font: var(--type-label-sm);
   color: var(--on-surface-muted);
-  flex: 1;
 }
-.edit-banner__actions { display: inline-flex; gap: var(--space-1); flex-wrap: wrap; justify-content: flex-end; }
+.edit-banner__actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-end;
+  flex: 1 1 auto;
+}
+.edit-banner__group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 8px;
+  border-left: 1px solid rgba(255,255,255,0.06);
+}
+.edit-banner__group:first-child { border-left: none; padding-left: 0; }
+.edit-banner__group--done { align-self: flex-end; }
+.edit-banner__group--danger .edit-banner__group-label { color: var(--status-alarm); }
+.edit-banner__group-label {
+  font: var(--type-label-sm);
+  letter-spacing: 0.18em;
+  color: var(--on-surface-muted);
+  text-transform: uppercase;
+}
+.edit-banner__group-actions {
+  display: inline-flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
 .edit-banner__btn {
   background: var(--surface-container);
   color: var(--on-surface-variant);
@@ -2006,8 +2043,18 @@
 }
 .edit-banner__btn:hover { color: var(--accent); }
 .edit-banner__btn--primary { background: var(--status-info-bg); color: var(--status-info); border-color: var(--status-info-border); }
+.edit-banner__btn--danger { color: var(--status-alarm); border-color: var(--status-alarm-border, rgba(255,80,80,0.35)); }
+.edit-banner__btn--danger:hover { background: var(--status-alarm-bg, rgba(255,80,80,0.12)); color: var(--status-alarm); }
 .edit-banner__btn--done { background: var(--status-ok); color: #052e16; border-color: var(--status-ok); }
 .edit-banner__file { display: none; }
+
+@media (max-width: 720px) {
+  .edit-banner { gap: var(--space-2); }
+  .edit-banner__lead { padding-top: 0; flex-basis: 100%; }
+  .edit-banner__actions { gap: var(--space-2); justify-content: flex-start; }
+  .edit-banner__group { padding: 0; border-left: none; }
+  .edit-banner__group + .edit-banner__group { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px; }
+}
 
 /* Editable tile wrapper */
 .editable-tile {

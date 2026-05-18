@@ -1,14 +1,16 @@
 {
   "name": "realm",
   "private": true,
-  "version": "0.14.3",
+  "version": "0.14.4",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "deploy": "npm run build && node scripts/deploy.mjs",
-    "deploy:only": "node scripts/deploy.mjs"
+    "deploy:only": "node scripts/deploy.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
@@ -19,6 +21,7 @@
     "react-router-dom": "^7.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/react-grid-layout": "^1.3.6",

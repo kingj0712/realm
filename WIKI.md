@@ -109,7 +109,7 @@ Realm should be **the easiest HA dashboard to customize and the most fun to use*
 
 ## 3. Tile Catalog
 
-All 43 tile types. Each tile is a React component that subscribes to its own entities via `useEntity`. Edit-mode adds a serializable config schema in `src/edit/tileRegistry.tsx`.
+All 60+ tile types (60 in the registry today plus the `EntityDetailModal` infrastructure entry). Each tile is a React component that subscribes to its own entities via `useEntity`. Edit-mode adds a serializable config schema in `src/edit/tileRegistry.tsx`. The exhaustive live demo lives at `/components`; the Showcase tab is a curated subset.
 
 | Tile | Category | Purpose / Visual |
 |------|----------|------------------|
@@ -171,7 +171,7 @@ All 43 tile types. Each tile is a React component that subscribes to its own ent
 | **ApplianceTile** | Info | Generic Samsung/SmartThings appliance (cycle, time remaining, temps, door, power). |
 | **HomelabTile** | Info | Multi-host overview with CPU + RAM bars per host. |
 | **BlindsTile** | Control | Blinds descend from top of window, scale with cover position. Smooth CSS-animated SVG matrix transform. |
-| **WeeklyDigestTile** | Info | Pulls weekly digest text from `homestead-hq` (default `http://homestead-hq.local:3000/api/digest/weekly`). Needs CORS on the server. |
+| **WeeklyDigestTile** | Info | Pulls weekly digest text from a configurable endpoint. Default URL is empty so the tile shows a SAMPLE digest until you point it at your own service. Server must allow CORS from the HA origin. |
 | **EntityDetailModal** | (infra) | Generic detail modal — shows a chart + attributes table for an entity. Wire from any tile's `onClick`. Pattern: `useState(false)` → modal element conditional → onClick on BaseTile. |
 | **HeaderTile** | Misc | Section header text (no BaseTile chrome). Configurable text, optional subtitle, accent underline color (default/ok/warn/alarm/info). Drop above a group of tiles to label that section. Defaults to full width × 40px. |
 
@@ -326,7 +326,8 @@ Most recent first. Sections 9.1–9.5 below have round-specific detail.
 
 | Round | Headline shipped |
 |-------|------------------|
-| **14.3** (current) | **Showcase visual QA pass**. Comfort section: dropped LightFan (two buttons swimming in h=13) and swapped in HVACScheduleTile, whose 24-hour timeline now flex-fills its body instead of staying at a fixed 70px. Security right column: cameras widened to w=5 each, garage ButtonTile dropped to h=4 + BlindsTile stacked at h=7 so neither tile is a single control in a 258px box. Systems row: h=6→8 so NAS donut and Homelab per-host bars stop cramping. Household + Homestead bands: h=11→10 to remove looseness from Vehicle, Beehive, Generator. CameraTile viewport now uses `flex:1 + max-height:100% + min-height:0` so the 16:9 aspect ratio defers to the tile height when needed (no bottom clip at w=5). |
+| **14.4** (current) | **Stabilization / docs / QA pass**. Playwright smoke suite covers app shell, fresh-install tabs, Components route, edit-mode entry (pencil + `E`), the grouped banner clusters, and Palette/Templates/Snapshots/Remap/Build-From-HA modals. `tests/smoke.spec.ts` + `playwright.config.ts` with a dedicated dev-server port (4173) so it doesn't collide with interactive `npm run dev` on 5173. CI gained an `e2e` job. Edit-mode banner regrouped into ADD / CONFIGURE / BACKUP / DANGER / DONE clusters so ten actions read calmly; mobile wraps cleanly. Public-demo defaults genericized: `WeatherRadarTile` ships with empty `iframeUrl` and a non-Casco description; `WeeklyDigestTile` default URL is empty and the SAMPLE digest text is generic-flavored. Docs caught up: README current-state line, WIKI tile-count + open-questions cleanup, CLAUDE.md round-13→round-14 callouts, MockHass.ts stale phase-6 TODO removed. New WIKI sections 10.8 (Repo Health / QA), 10.9 (Visual QA Checklist), 10.10 (Dependency upgrade triage). |
+| **14.3** | **Showcase visual QA pass**. Comfort section: dropped LightFan (two buttons swimming in h=13) and swapped in HVACScheduleTile, whose 24-hour timeline now flex-fills its body instead of staying at a fixed 70px. Security right column: cameras widened to w=5 each, garage ButtonTile dropped to h=4 + BlindsTile stacked at h=7 so neither tile is a single control in a 258px box. Systems row: h=6→8 so NAS donut and Homelab per-host bars stop cramping. Household + Homestead bands: h=11→10 to remove looseness from Vehicle, Beehive, Generator. CameraTile viewport now uses `flex:1 + max-height:100% + min-height:0` so the 16:9 aspect ratio defers to the tile height when needed (no bottom clip at w=5). |
 | **14.2** | **Showcase clipping fixes**: `.tile__body` now allows flex/SVG children to shrink (`min-height:0; overflow:hidden`). ClockTile time text scales via `clamp()` + container queries instead of overflowing at small h. EnergyFlowTile + SankeyTile SVGs use `preserveAspectRatio="xMidYMid meet"` and fill 100% of available height. Tank/Gauge/Donut SVGs become `height:100%` with max-size caps. Showcase layout heights bumped per the sizing band rules (WeatherTile 9→11, EnergyFlow/Sankey 10→12, Climate 10→13, Camera 9→11, etc.). CameraTile gains a `placeholderLabel` prop that renders a designed test-pattern with a DEMO badge instead of NO SIGNAL. WeeklyDigestTile gains a `demo: true` prop that renders a styled SAMPLE digest without fetching (no console noise). Registry defaults updated for Tank/Gauge/Donut/Camera/Climate/AirPurifier/Vehicle/Laundry so new instances aren't created too short. Sizing rules documented in WIKI section 10.7. |
 | **14.1** | **Showcase tab redesign**: replaced the "tile dump" Demo tab with a curated, sectioned Showcase. Eight named sections (Environment, House Status, Energy, Comfort, Security, Systems, Household, Homestead), ~25 tiles total, explicit x/y/w/h so heights cluster per section and there are no blank vertical gaps. Renamed the default tab from "Demo" to "Showcase" (fresh installs only — existing users keep their tab name). `sampleLayouts.ts` now has a top-of-file comment laying out the three distinct roles: Welcome (first-run instructions), Showcase (curated dashboard), `/components` page (exhaustive catalog). |
 | **14** | **Fork-and-customize pivot**: edit-mode **REMAP** modal scans active-tab tile props for demo entity IDs and bulk-swaps to user-picked LIVE entities (`src/edit/RemapEntitiesModal.tsx` + `entityRemap.ts`). **BUILD FROM HA** offers a preview-before-add starter tab from live entities by domain. **SNAPSHOTS** modal manages named localStorage rollbacks alongside file EXPORT/IMPORT. **Service-call toasts** centralize feedback through a `HassStore.subscribeServiceEvents` emitter and a shadow-root `ToastHost`. **Per-tile error boundaries** prevent one bad tile from blanking the dashboard. **Standardized missing-entity states** (`UNMAPPED` vs `UNAVAILABLE` vs `NO ENTITY`). **Per-breakpoint layout types** + migration (UI for editing per breakpoint still pending). **Confirm before action** for ButtonTile + VehicleTile remote start, via a SCADA-styled `ConfirmModal`. **EntityPicker** gains domain + LIVE/DEMO chips. **Composite tile modals** for ClimateThermostat, Laundry, Vehicle, Sankey, Homelab. **Deep-dive routes** `/entity/:entityId` and `/room/:roomId` scaffolded. |
@@ -390,10 +391,9 @@ Track decisions we've deferred and known issues.
 - **Edit mode on phone:** Drag works on touch. Inspector is full-screen on <700px. Verify ergonomics on real phone use.
 - **CameraTile real wiring:** Pass `entity.attributes.entity_picture` as `snapshotUrl` once real cameras are connected. May need to proxy through HA for auth.
 - **Energy flow accuracy:** Mock assumes home = grid + solar + battery. Real flow needs proper sign conventions for selling-back-to-grid and battery discharge.
-- **Tile-level error boundaries:** A single misconfigured tile shouldn't crash the whole Overview. Wrap each `<EditableTile>` in an error boundary.
 - **Layout schema migration:** v4 → v5 was a no-op rename (round 10) because the shape was identical. Future schema changes should ship a real migration rather than dropping local state.
-- **Theme switching from inside Realm:** Currently the user switches in HA Profile. Could expose a quick toggle from Realm itself.
-- **More tiles need detail modals:** Most single-entity visualization tiles are wired. Still candidate-for-custom-modal: SankeyTile, LaundryTile, ClimateThermostatTile, VehicleTile, HomelabTile, and other composites where a generic attributes table is too thin.
+- **Theme switching from inside Realm:** Currently the user switches in HA Profile. Could expose a quick toggle from Realm itself. Plan in section 10.6.
+- **More tiles still want custom detail modals:** MultiMetric and AreaList are candidates next. SankeyTile, LaundryTile, ClimateThermostatTile, VehicleTile, HomelabTile shipped in round 14.
 
 ---
 
@@ -448,6 +448,74 @@ Tiles render inside their row-spans (20px each + 8px margin). Each tile has a mi
 - ClockTile body is `container-type: size` and the time/date use `clamp(min, Ncqh, max)` so the font scales with the tile.
 
 Showcase respects each tile's minimum useful size; the `/components` page remains the exhaustive catalog where every tile renders at its registry default.
+
+## 10.8 Repo health / QA
+
+Three layers, run in this order before any deploy:
+
+1. **Type check + build.** `npm run build` runs `tsc --noEmit` then Vite library build. Must pass before deploy. The CI workflow at `.github/workflows/build.yml` runs the same on every push and PR.
+2. **Playwright smoke tests.** `npm run test:e2e` spins up the Vite dev server and exercises the app shell, navigation, edit-mode entry, modal stacking, and tile detail modals against the mock store. Tests live in `tests/smoke.spec.ts` and `tests/playwright.config.ts`. Each test clears `localStorage` before navigating so fresh-install defaults always apply. Run headed (`npm run test:e2e:headed`) when chasing a flaky selector.
+3. **Manual visual QA pass.** See section 10.9 — short checklist for what to eyeball before tagging a release.
+
+A deploy is considered successful when (a) build is clean, (b) Playwright passes, (c) the bundle copies to the HA share, and (d) a hard refresh shows the new version banner / tab layout. Bumping `package.json` version on every behavior-changing commit makes step (d) verifiable.
+
+## 10.9 Visual QA checklist
+
+Lightweight manual sanity check. Targeted at "is anything visibly broken before I push?" — not a regression suite. Run after each visible UX change.
+
+**Resolutions to spot-check:**
+- [ ] 1440 desktop — Showcase reads as intentional, no overflow at any section, no horizontal scrollbar.
+- [ ] 2560 desktop — tiles scale up cleanly, large tiles (Weather, Camera, Sankey, EnergyFlow) don't develop dead space.
+- [ ] Tablet (~1024px) — RGL crosses the 12→8 col breakpoint, sections still align.
+- [ ] Phone (~480px) — 6→4 col breakpoint, no clipping in modals, Inspector goes full-screen.
+
+**View-mode interaction:**
+- [ ] Click an info tile (Tank/Gauge/Value/Weather/Camera) in Showcase — detail modal opens above the page, Esc closes it, no shadow-DOM clipping.
+- [ ] Switch tabs — Welcome and Showcase both render, no flash of unmapped tiles.
+- [ ] Trigger a service call (toggle a ToggleTile, scene button) — toast appears bottom-right, auto-dismisses.
+
+**Edit mode:**
+- [ ] Press `E` (or pencil) — banner appears with all action groups visible, no horizontal overflow on 1440.
+- [ ] Add Tile / Templates / Build From HA / Remap / Snapshots / Alarms each open their modal above the grid.
+- [ ] Drag a tile — handle grab works, fixed slots prevent collision, drop preserves position.
+- [ ] Resize a tile — bottom-right handle drags smoothly.
+- [ ] Mobile edit banner — wraps cleanly without overlapping the alarm chips.
+
+**Flows:**
+- [ ] REMAP flow on Showcase — pick a demo entity, swap to a live one, Apply persists.
+- [ ] BUILD FROM HA — scan, unchecked preview, Add Tab creates a new tab without disturbing existing tabs.
+- [ ] SNAPSHOTS — Save current, restore, rename, delete each work; restore really loads.
+- [ ] EXPORT — downloads a JSON file with the expected shape. IMPORT — round-trips that file without errors.
+- [ ] RESET — confirms first, then clears to Welcome + Showcase fresh install state.
+
+**Catch-alls:**
+- [ ] No red console errors on Overview load.
+- [ ] No tile shows `Render error` placeholder unless deliberately broken.
+- [ ] Modal stacking — opening Palette over Inspector keeps both keyboard-dismissable in order.
+
+## 10.10 Dependency upgrade triage
+
+Dependabot opens PRs whenever a watched package publishes. Don't blind-merge anything that could break a build or a visual regression we can't catch from CI alone. Bucket by risk:
+
+**Safe-ish (CI is usually enough to validate):**
+- GitHub Actions updates (`actions/checkout`, `actions/setup-node`). The build workflow exercises them on the next push. Merge one at a time and watch the next green run.
+- Patch and minor `@types/*` updates. Type-only; either the build passes or it doesn't.
+
+**Moderate (run Playwright locally before merging):**
+- `@vitejs/plugin-react` minor bumps.
+- React 19 patch releases.
+- ECharts minor updates.
+
+**Hold until smoke tests have grown coverage (don't merge in this pass):**
+- Vite **major** (e.g. 6 → 7/8). Library-mode behavior and CSS injection have shifted between majors in the past; needs a manual deploy + browser sanity pass.
+- TypeScript **major** (5 → 6). Type errors that surface from a major bump can be wide-ranging; absorb separately from any feature work.
+- `@vitejs/plugin-react` **major**.
+- React **major** (we're already on 19; any 20 bump is its own project).
+
+**Policy:**
+- Upgrade one dependency at a time. If multiple Dependabot PRs are open, merge the safest first, push to main, watch CI, then move to the next.
+- For majors: branch locally, run `npm.cmd run build && npm.cmd run test:e2e && npm.cmd run deploy:only`, hard-refresh Realm against HA, manually verify the Visual QA Checklist (10.9). Only then merge.
+- Never accept a Dependabot PR that touches a major and another major at once. Split it.
 
 ## 11. Conventions
 

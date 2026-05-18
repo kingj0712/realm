@@ -21,7 +21,7 @@ Commands:
 
 After the first deploy, HA needs a full restart (not just YAML reload) for `panel_custom` to register. Subsequent bundle updates only need a hard browser refresh — in devtools, tick **Disable cache** then refresh, or use an incognito tab. Plain Ctrl+Shift+R doesn't always invalidate the ES module cache for `panel_custom` modules.
 
-## Architecture (current state, round 13)
+## Architecture (current state, v0.14.4 / phase 14)
 
 - **Entry point:** `src/main.tsx` defines the `<realm-panel>` custom element. Attaches a Shadow DOM, injects tokens.css + components.css + react-grid-layout.css + react-resizable.css (all `?inline`-imported), and renders React inside. Also loads Google Fonts (Barlow Condensed + Share Tech Mono) via a `<link>` injected into document head once. When Home Assistant assigns the `hass` property, live states overlay the demo pool.
 - **App tree:** `App.tsx` to `HassProvider` to `LayoutProvider` to `HashRouter` to `Shell` to `Overview` or `ComponentsDemo`.
@@ -39,16 +39,18 @@ After the first deploy, HA needs a full restart (not just YAML reload) for `pane
 - **Mock store + entities + service handlers:** `src/hass/MockHass.ts`.
 - **Edit infrastructure:** `src/edit/*`
   - `LayoutContext.tsx` — multi-tab state + tile ops + persistence; exposes `addTabWithLayout()` for sample loading
-  - `EditModeBanner.tsx` — sticky edit toolbar with add/templates/alarms/export/import/reset/done actions
+  - `EditModeBanner.tsx` — sticky edit toolbar, grouped into Add (Tile / Templates / Build From HA), Configure (Remap / Alarms), Backup (Snapshots / Export / Import), Danger (Reset), and Done
   - `tileRegistry.tsx` — tile metadata + schema + render fns
   - `TabBar.tsx` — top-of-page tabs with inline rename (round 10)
   - `AlarmChips.tsx` — pulsing-red chip strip + per-tab alarm config; AlarmsConfig uses inline `EntityPicker` (round 10)
   - `Inspector.tsx` — side-panel property editor (large, readable as of round 9)
   - `Palette.tsx` — add-tile modal with text search (round 9)
   - `EntityPicker.tsx`, `IconPicker.tsx`, `RowEditor.tsx` — Inspector subcomponents (EntityPicker now also used by AlarmsConfig)
-  - `EditModeBanner.tsx` — sticky banner: +ADD TILE / TEMPLATES (new round 10) / ALARMS / RESET / DONE
   - `SampleBrowser.tsx` — TEMPLATES picker modal (round 10)
-  - `sampleLayouts.ts` — Welcome, Smart Home Starter, Homestead Ops, Showcase (round 10)
+  - `sampleLayouts.ts` — Welcome, Smart Home Starter, Homestead Ops, Showcase (round 10, redesigned in 14.1)
+  - `RemapEntitiesModal.tsx`, `entityRemap.ts` — REMAP flow (round 14)
+  - `SnapshotsModal.tsx` — named local snapshots (round 14)
+  - `StarterFromLiveModal.tsx`, `starterFromLive.ts` — BUILD FROM HA flow (round 14)
   - `defaultLayouts.ts` — thin re-export of `welcomeLayout`; the real layouts live in `sampleLayouts.ts`
 - **Detail modal:** `src/components/EntityDetailModal.tsx` — generic body is `PlotTile` + attributes; accepts `children` to override (used by WeatherTile + CameraTile for custom extended views).
 - **Routes:** `src/pages/Overview.tsx` (config-driven, editable, RGL-backed) and `src/pages/ComponentsDemo.tsx` (static reference for every tile variant).
