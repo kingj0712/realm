@@ -215,45 +215,54 @@ export function showcaseLayout(): LayoutItem[] {
     T('DonutTile', 9, 46, 3, 10),
 
     // ===== Section 4: Comfort =====
+    // Swapped LightFan (just two buttons, looked lost at h=13) for an HVAC
+    // schedule timeline that actually uses the height.
     H('COMFORT', 'info', 0, 56),
     T('ClimateThermostatTile', 0, 58, 4, 13),
     T('AirPurifierTile', 4, 58, 4, 13),
-    T('LightFanTile', 8, 58, 4, 13),
+    T('HVACScheduleTile', 8, 58, 4, 13),
 
     // ===== Section 5: Security =====
+    // Cameras get wider (w=5) so the 16:9 viewport reads as the hero. The
+    // right column stacks a compact garage button + blinds animation so
+    // neither tile ends up as a single control in a tall empty box.
     H('SECURITY', 'warn', 0, 71),
-    // placeholderLabel makes the demo cameras read as intentional feed tiles
-    // rather than broken NO-SIGNAL boxes when no real entity_picture is set.
-    T('CameraTile', 0, 73, 4, 11, { entityId: 'camera.front_porch', icon: 'mdiCamera', placeholderLabel: 'DRIVEWAY FEED' }),
-    T('CameraTile', 4, 73, 4, 11, { entityId: 'camera.backyard', icon: 'mdiCamera', placeholderLabel: 'BACKYARD FEED' }),
-    T('ButtonTile', 8, 73, 2, 11, {
+    T('CameraTile', 0, 73, 5, 11, { entityId: 'camera.front_porch', icon: 'mdiCamera', placeholderLabel: 'DRIVEWAY FEED' }),
+    T('CameraTile', 5, 73, 5, 11, { entityId: 'camera.backyard', icon: 'mdiCamera', placeholderLabel: 'BACKYARD FEED' }),
+    T('ButtonTile', 10, 73, 2, 4, {
       entityId: 'cover.garage_door', icon: 'mdiGarage', buttonText: 'OPERATE',
       states: { open: { pill: 'OPEN', status: 'warn', buttonText: 'CLOSE' }, closed: { pill: 'CLOSED', status: 'ok', buttonText: 'OPEN' } },
       confirmBeforeAction: true,
       confirmMessage: 'Operate the garage door?',
     }),
-    T('BlindsTile', 10, 73, 2, 11),
+    T('BlindsTile', 10, 77, 2, 7),
 
     // ===== Section 6: Systems =====
+    // NAS donut + Homelab per-host bars need more vertical room than h=6
+    // gave them. h=8 fits both without cramping; Network/SpeedTest at h=8
+    // get a little more breathing room which is fine.
     H('SYSTEMS', 'info', 0, 84),
-    T('NetworkTile', 0, 86, 3, 6),
-    T('SpeedTestTile', 3, 86, 3, 6),
-    T('NASTile', 6, 86, 3, 6),
-    T('HomelabTile', 9, 86, 3, 6),
+    T('NetworkTile', 0, 86, 3, 8),
+    T('SpeedTestTile', 3, 86, 3, 8),
+    T('NASTile', 6, 86, 3, 8),
+    T('HomelabTile', 9, 86, 3, 8),
 
     // ===== Section 7: Household =====
-    H('HOUSEHOLD', 'ok', 0, 92),
-    T('LaundryTile', 0, 94, 4, 11),
-    T('VehicleTile', 4, 94, 4, 11),
-    T('CalendarTile', 8, 94, 4, 11),
+    // h=10 is plenty: Laundry's two appliance cells fit, Vehicle's battery
+    // bar + 4 buttons no longer look stranded in dead space, Calendar's
+    // event list scrolls naturally.
+    H('HOUSEHOLD', 'ok', 0, 94),
+    T('LaundryTile', 0, 96, 4, 10),
+    T('VehicleTile', 4, 96, 4, 10),
+    T('CalendarTile', 8, 96, 4, 10),
 
     // ===== Section 8: Homestead =====
-    H('HOMESTEAD', 'info', 0, 105),
     // demo: true on the digest means we skip the fetch entirely and render
     // a styled SAMPLE digest. No console noise about CORS failures.
-    T('WeeklyDigestTile', 0, 107, 4, 11, { demo: true }),
-    T('BeehiveTile', 4, 107, 4, 11),
-    T('GeneratorTile', 8, 107, 4, 11),
+    H('HOMESTEAD', 'info', 0, 106),
+    T('WeeklyDigestTile', 0, 108, 4, 10, { demo: true }),
+    T('BeehiveTile', 4, 108, 4, 10),
+    T('GeneratorTile', 8, 108, 4, 10),
   ];
 
   return tiles().map((spec) => buildItem(spec));

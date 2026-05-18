@@ -1172,11 +1172,20 @@
 .demo-grid--camera { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 
 .camera-tile {
+  flex: 1;
+  display: flex;
+  min-height: 0;
   padding-top: var(--space-1);
 }
 .camera-tile__viewport {
   position: relative;
+  flex: 1;
   aspect-ratio: 16 / 9;
+  /* When the body height would force the 16:9 viewport beyond the tile
+     bounds, cap it. aspect-ratio is preserved by browser layout when
+     possible; max-height/min-height:0 keeps content inside the tile. */
+  max-height: 100%;
+  min-height: 0;
   background: linear-gradient(135deg, #0a0c0f 0%, #14171b 100%);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -1818,8 +1827,8 @@
 .timer-tile__btn:hover { color: var(--accent); border-color: var(--accent); }
 
 /* HVACScheduleTile */
-.hvac-schedule { display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-1); }
-.hvac-schedule__svg { width: 100%; height: 70px; }
+.hvac-schedule { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-1); }
+.hvac-schedule__svg { flex: 1; width: 100%; min-height: 70px; max-height: 100%; }
 .hvac-schedule__area { fill: var(--status-info); fill-opacity: 0.15; stroke: var(--status-info); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .hvac-schedule__cursor { stroke: var(--status-warn); stroke-width: 1.5; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
 .hvac-schedule__hours { display: flex; justify-content: space-between; font: var(--type-label-sm); font-family: var(--font-mono); color: var(--on-surface-muted); }
