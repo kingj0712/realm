@@ -1,7 +1,7 @@
 {
   "name": "realm",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -11,9 +11,6 @@
     "deploy:only": "node scripts/deploy.mjs"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "@mdi/js": "^7.4.47",
     "echarts": "^6.0.0",
     "react": "^19.0.0",

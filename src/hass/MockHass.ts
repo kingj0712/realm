@@ -88,7 +88,7 @@ const initialStates: Record<string, HassEntity> = {
       { start: '2026-05-14T15:00:00', end: '2026-05-14T16:00:00', summary: 'Dentist' },
       { start: '2026-05-15T09:00:00', end: '2026-05-15T10:00:00', summary: 'Stand-up' },
       { start: '2026-05-16T14:00:00', end: '2026-05-16T17:00:00', summary: 'Yard work' },
-      { start: '2026-05-18T19:00:00', end: '2026-05-18T21:00:00', summary: 'Dinner with Sam' },
+      { start: '2026-05-18T19:00:00', end: '2026-05-18T21:00:00', summary: 'Dinner with User 2' },
     ],
   }),
 
@@ -105,8 +105,8 @@ const initialStates: Record<string, HassEntity> = {
   }),
 
   // Person / PresenceList
-  'person.jake': ent('person.jake', 'home', { friendly_name: 'Jake', source: 'device_tracker.jake_iphone', gps_accuracy: 12, entity_picture: null }),
-  'person.sam': ent('person.sam', 'away', { friendly_name: 'Sam', source: 'device_tracker.sam_iphone', gps_accuracy: 25, entity_picture: null }),
+  'person.user_1': ent('person.user_1', 'home', { friendly_name: 'User 1', source: 'device_tracker.user_1_phone', gps_accuracy: 12, entity_picture: null }),
+  'person.user_2': ent('person.user_2', 'away', { friendly_name: 'User 2', source: 'device_tracker.user_2_phone', gps_accuracy: 25, entity_picture: null }),
   'person.guest': ent('person.guest', 'not_home', { friendly_name: 'Guest', source: 'device_tracker.guest_phone', gps_accuracy: 0, entity_picture: null }),
 
   // Scenes

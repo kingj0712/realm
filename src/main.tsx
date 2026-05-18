@@ -45,7 +45,8 @@ interface HassLike {
 // Custom element HA mounts when the user opens the Realm panel.
 // HA assigns hass/narrow/route/panel as properties on the element. When `hass`
 // is set we sync its states into our store (live wins over mock for collisions)
-// and install a service handler that proxies to the real connection.
+// and install a live service handler. Mock-only demo entities keep their local
+// behavior so the dashboard stays usable during setup.
 class RealmPanel extends HTMLElement {
   private root: Root | null = null;
   private mountNode: HTMLElement | null = null;
@@ -62,10 +63,9 @@ class RealmPanel extends HTMLElement {
       this.store.syncFromLive(value.states);
     }
     if (!this.liveHandlerInstalled && typeof value.callService === 'function') {
-      // Replace the mock service handler with one that proxies to live HA.
-      // We read `this._hass` at call time (not the captured `value`) so it
+      // We read `this._hass` at call time, not the captured `value`, so it
       // always uses the freshest callService reference.
-      this.store.setServiceHandler(async (domain, service, data, target) => {
+      this.store.setLiveServiceHandler(async (domain, service, data, target) => {
         const hass = this._hass;
         if (!hass?.callService) return;
         try {

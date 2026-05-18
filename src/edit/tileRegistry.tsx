@@ -462,7 +462,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
     type: 'PresenceListTile', name: 'Presence List', category: 'Group',
     description: 'List of people with home/away state and avatar.',
     defaultColSpan: 3,
-    defaultProps: { label: 'PRESENCE', icon: 'mdiAccountGroup', personIds: ['person.jake', 'person.sam'] },
+    defaultProps: { label: 'PRESENCE', icon: 'mdiAccountGroup', personIds: ['person.user_1', 'person.user_2'] },
     schema: {
       label: { kind: 'string', label: 'Label' },
       icon: { kind: 'icon', label: 'Icon', optional: true },
@@ -493,7 +493,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
     type: 'PersonTile', name: 'Person', category: 'Info',
     description: 'Single person with avatar and presence state.',
     defaultColSpan: 3, defaultRowSpan: 4,
-    defaultProps: { entityId: 'person.jake', icon: 'mdiAccount' },
+    defaultProps: { entityId: 'person.user_1', icon: 'mdiAccount' },
     schema: {
       entityId: { kind: 'entity', label: 'Person entity', domains: ['person'] },
       label: { kind: 'string', label: 'Label override', optional: true },

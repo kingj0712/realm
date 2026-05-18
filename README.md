@@ -22,7 +22,7 @@ The four pillars guiding every change:
 - **Config-driven dashboard with explicit `(x, y, w, h)` tile placement** via [react-grid-layout v2](https://github.com/react-grid-layout/react-grid-layout). Drop tiles wherever, deliberate gaps allowed (iOS-home-screen style).
 - **Edit mode** with a per-tile Inspector, searchable Palette to add tiles, drag-rearrange, drag-resize, duplicate, and per-tab layouts (multiple dashboard pages).
 - **Per-tab alarm chips** — a pulsing strip at the top of each tab showing whichever entities you've designated as alarm-watch.
-- **Mock data store** that mirrors HA's `hass.states` shape, so the whole UI develops without a live HA connection. Phase 6+ swaps in a `LiveHassStore` bridged to the HA-injected `hass` object.
+- **Live HA plus demo data store** that mirrors HA's `hass.states` shape. Inside Home Assistant, live entities overlay the demo pool and live service calls route to HA. In local dev, the same demo pool keeps every tile interactive.
 - **Shadow DOM isolation** — Realm fully owns its styling and doesn't leak into HA's chrome.
 - **60+ tile types** covering most home-automation use cases. See `WIKI.md` section 3 for the full catalog.
 
@@ -83,7 +83,7 @@ Realm ships with a companion HA theme (`themes/realm_dark.yaml` in the author's 
 
 ## Status
 
-Active development. The author posts incremental rounds of work — see `WIKI.md` section 9.0 for the changelog. Recent rounds (7–10): drag-to-resize, switched to react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, EntityDetailModal wired on Tank/Gauge/Donut/Bar/Value/Sparkline/HistoryBars/Weather/Camera, first-run Welcome layout + sample dashboard library, inline tab rename, keyboard shortcuts.
+Active development. The author posts incremental rounds of work. See `WIKI.md` section 9.0 for the changelog. Recent rounds (7 to 12): react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, detail modals, first-run Welcome layout, sample dashboard library, live HA entity overlay, modal portal fixes, and live/demo entity picker labels.
 
 ## Keyboard shortcuts
 
@@ -95,8 +95,8 @@ Shortcuts are skipped while typing in any input.
 
 ## Not done yet
 
-- Live HA wiring (mock store still in place — phase 6+).
-- More tiles deserve detail modals (Network/NAS/SpeedTest/Sankey/Heatmap/MultiMetric/Alarm/AreaList — same pattern as round 10's).
+- Live history/statistics provider. Current history charts still use generated demo history.
+- More tiles deserve custom detail modals, especially Sankey, MultiMetric, AreaList, Calendar, and appliance-style tiles.
 - Tab drag-to-reorder.
 - Floorplans route.
 - Per-breakpoint layouts (currently all breakpoints share the lg layout).

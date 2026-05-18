@@ -42,7 +42,7 @@ export const RowEditor: FC<RowEditorProps> = ({ rowKind, value, onChange }) => {
             </div>
           </div>
         ))}
-        <button type="button" className="row-editor__add" onClick={() => add('person.jake')}>+ ADD PERSON</button>
+        <button type="button" className="row-editor__add" onClick={() => add('person.user_1')}>+ ADD PERSON</button>
       </div>
     );
   }

@@ -1,6 +1,7 @@
-import type { FC, ReactNode, MouseEvent } from 'react';
+import { useState, type FC, type ReactNode, type MouseEvent } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity, useHass } from '../../hass';
+import { TileModal } from './TileModal';
 
 // Cell types for one row in an AreaListTile. Compose any number of cells
 // (each subscribes to its own entity) to form a dense row of mixed data.
@@ -143,12 +144,45 @@ const AreaListRow: FC<AreaRow> = ({ label, cells }) => (
   </div>
 );
 
-export const AreaListTile: FC<AreaListTileProps> = ({ label, icon, pill, rows }) => (
-  <BaseTile label={label} icon={icon} pill={pill}>
-    <div className="area-list-tile">
-      {rows.map((r) => (
-        <AreaListRow key={r.label} {...r} />
-      ))}
+const AreaDetailRow: FC<{ rowLabel: string; cell: AreaCell }> = ({ rowLabel, cell }) => {
+  const entity = useEntity(cell.entityId);
+  const friendly = (entity?.attributes.friendly_name as string | undefined) ?? cell.entityId;
+  const unit = cell.type === 'value'
+    ? cell.unit ?? (entity?.attributes.unit_of_measurement as string | undefined) ?? ''
+    : '';
+
+  return (
+    <div className="entity-detail__attr">
+      <span className="entity-detail__attr-key">{rowLabel}</span>
+      <span className="entity-detail__attr-val">{entity?.state ?? 'n/a'}{unit ? ` ${unit}` : ''} ({friendly})</span>
     </div>
-  </BaseTile>
-);
+  );
+};
+
+export const AreaListTile: FC<AreaListTileProps> = ({ label, icon, pill, rows }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <BaseTile label={label} icon={icon} pill={pill} onClick={() => setOpen(true)}>
+        <div className="area-list-tile">
+          {rows.map((r) => (
+            <AreaListRow key={r.label} {...r} />
+          ))}
+        </div>
+      </BaseTile>
+      {open && (
+        <TileModal title={label} pill={pill} onClose={() => setOpen(false)} size="lg">
+          <div className="entity-detail__attrs">
+            <div className="entity-detail__attrs-head">ROWS</div>
+            <div className="entity-detail__attrs-body">
+              {rows.flatMap((r) => r.cells.map((cell, i) => (
+                <AreaDetailRow key={`${r.label}-${i}-${cell.entityId}`} rowLabel={r.label} cell={cell} />
+              )))}
+            </div>
+          </div>
+        </TileModal>
+      )}
+    </>
+  );
+};

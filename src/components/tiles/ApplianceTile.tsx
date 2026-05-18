@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface ApplianceTileProps {
   entityId: string;
@@ -19,6 +20,7 @@ export const ApplianceTile: FC<ApplianceTileProps> = ({
   showCycle = true, showTimeRemaining = true, showPower = true, showTemps = true, showDoor = true,
 }) => {
   const entity = useEntity(entityId);
+  const [open, setOpen] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
   if (!entity) return <BaseTile label={friendly} status="stale" icon={icon} pill="unavail"><div>n/a</div></BaseTile>;
 
@@ -37,7 +39,8 @@ export const ApplianceTile: FC<ApplianceTileProps> = ({
   const unit = (entity.attributes.unit as string | undefined) ?? '°F';
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon} pill={state.toUpperCase()}>
+    <>
+    <BaseTile label={friendly} status={status} icon={icon} pill={state.toUpperCase()} onClick={() => setOpen(true)}>
       <div className="appliance-tile">
         {showCycle && cycle && <div className="appliance-tile__row"><span className="appliance-tile__row-label">CYCLE</span><span className="appliance-tile__row-val">{cycle}</span></div>}
         {showTimeRemaining && timeRemaining && timeRemaining !== '00:00' && (
@@ -60,5 +63,7 @@ export const ApplianceTile: FC<ApplianceTileProps> = ({
         )}
       </div>
     </BaseTile>
+    {open && <EntityDetailModal entityId={entityId} title={friendly} pill={state.toUpperCase()} onClose={() => setOpen(false)} />}
+    </>
   );
 };

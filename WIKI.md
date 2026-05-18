@@ -34,7 +34,7 @@ Realm should be **the easiest HA dashboard to customize and the most fun to use*
 
 **Path to fork-and-customize (anyone can use this, not just the author):**
 - [x] **Empty-state Overview / first-run welcome** — done in round 10: new installs land on a Welcome tab (pure HeaderTiles, zero entity deps) + a separate Demo tab they can delete. No more "n/a everywhere" first impression.
-- [ ] **Generic defaults** — `person.jake`/`person.sam` etc. still appear in the Showcase demo layout. Worth a pass to rename for clarity, but lower urgency now that Showcase is opt-in (it's the second tab, easy to delete).
+- [x] **Generic defaults** — done in round 12. Demo people now use `person.user_1` / `person.user_2` style IDs instead of author-specific examples.
 - [x] **Sample dashboard library** — done in round 10. `src/edit/sampleLayouts.ts` exports four samples (Welcome, Smart Home Starter, Homestead Ops, Showcase) wired into a TEMPLATES button in the edit banner. Each loads as a new tab.
 - [x] **Deploy target configuration** — done in v0.9.1: `REALM_DEPLOY_TARGET` env var overrides the hardcoded HA share path.
 - [ ] **Onboarding flow** — first-run wizard that asks "scan my HA entities and build a starter layout?" vs. "give me the demo." Welcome layout from round 10 covers the static side; live-entity scan is still future work.
@@ -87,7 +87,7 @@ Realm should be **the easiest HA dashboard to customize and the most fun to use*
 
 ### State layers
 - **`HassProvider` + `useEntity(id)`** — `useSyncExternalStore`-backed selector hook. Subscribing per-entity avoids full-tree re-renders when HA state mutates constantly.
-- **Mock store (`createMockStore()`)** powers everything today. A `setServiceHandler` callback mutates entities on service calls so toggles/setpoints/sliders feel live without a real HA connection. A `setHistoryProvider` returns cached random-walk series for sparklines/plots.
+- **Live/demo store (`createMockStore()`)** powers everything. The demo pool keeps local dev and unmapped tiles interactive. In Home Assistant, `HassStore.syncFromLive()` overlays live entities on top, live wins on collisions, and service calls route to HA only when the target entity is live. A `setHistoryProvider` still returns cached random-walk series for sparklines/plots.
 - **`LayoutProvider` + `useLayout()`** — owns the dashboard layout, edit mode flag, and selected tile id. Persists to `localStorage` under `realm:layout:overview`.
 
 ### Design tokens
@@ -176,7 +176,7 @@ All 43 tile types. Each tile is a React component that subscribes to its own ent
 ### How to use
 1. Open Realm. The Overview is the only config-driven page (Components is a static demo).
 2. Click the pencil icon in the top-right of the header to enter edit mode. The banner appears at the top with `+ ADD TILE`, `RESET`, `DONE` buttons.
-3. **Rearrange:** Grab the `⋮⋮` handle on any tile and drag to a new position. The grid uses `@dnd-kit/sortable`.
+3. **Rearrange:** Grab the `⋮⋮` handle on any tile and drag to a new position. The grid uses react-grid-layout v2 with fixed slots and collision prevention.
 4. **Resize:** Click a tile to open the Inspector. Use the WIDTH preset buttons (`XS`/`SM`/`MD`/`LG`/`XL`/`FULL` = col spans 2/3/4/6/8/12).
 5. **Reassign entities:** Click a tile. In the Inspector, use the Entity field's searchable picker. The list filters by allowed domains for that tile (e.g. only `binary_sensor` for StatusTile).
 6. **Change icon:** Click the icon field's swatch to open the IconPicker (search + grid of available mdi icons).
@@ -191,8 +191,10 @@ All 43 tile types. Each tile is a React component that subscribes to its own ent
 interface LayoutItem {
   id: string;       // unique
   type: string;     // tile registry key, e.g. 'TankTile'
-  colSpan: number;  // 1–12; clamps to grid width at render
-  rowSpan?: number;
+  x: number;        // grid column
+  y: number;        // grid row
+  w: number;        // width in columns
+  h: number;        // height in 20px rows
   props: Record<string, unknown>;  // tile-specific config, all JSON-serializable
 }
 ```
@@ -208,21 +210,24 @@ The `icon` prop is stored as a string name (e.g. `"mdiBarrel"`); the tile regist
 - Mobile (<600px): 4 columns.
 - Tablet (600–1024px): 8 columns.
 - Desktop (>1024px): 12 columns.
-- A tile with `colSpan: 6` takes 4/8/6 cols at each breakpoint (browser grid clamps to grid width).
-- `grid-auto-flow: dense` packs gaps automatically.
+- A tile with `w: 6` takes up to 4/6/6 cols at the current breakpoint, depending on available columns.
+- The compactor is disabled and collision prevention is enabled, so deliberate gaps stay put and occupied cells do not cascade downward during drag.
 
 ---
 
-## 5. Mock Data Approach
+## 5. Live/Demo Data Approach
 
-The mock store (`src/hass/MockHass.ts`) ships with ~80 seed entities covering every tile type. It also implements service handlers for the operations tiles actually call: `light.turn_on/turn_off/toggle`, `switch.turn_on/turn_off/toggle`, `climate.set_temperature`, `cover.*`, `media_player.*`, `scene.turn_on`, `todo.update_item`, `vacuum.start/stop/return_to_base`, `timer.start/pause/cancel`.
+The demo store (`src/hass/MockHass.ts`) ships with ~100 seed entities covering every tile type. It also implements service handlers for the operations tiles actually call: `light.turn_on/turn_off/toggle`, `switch.turn_on/turn_off/toggle`, `climate.set_temperature`, `cover.*`, `media_player.*`, `scene.turn_on`, `todo.update_item`, `vacuum.start/stop/return_to_base`, `timer.start/pause/cancel`.
 
 History (for sparklines, plots, history bars) is generated via a random-walk function that lands exactly at the entity's current state. Cached per entity_id so the line doesn't jitter on unrelated state changes.
 
-When we wire real HA (phase 6+):
-- `main.tsx` reintroduces property setters on the custom element that mirror the injected `hass` object onto the store.
-- A `LiveHassStore` (TBD) implements the same `HassStore` interface but talks to `hass.connection` for state subscriptions and `hass.callService` for actions.
-- `useEntity`, `useHistory`, all tiles, and the edit-mode registry don't change. The swap is a provider change at the App root.
+When Realm runs inside Home Assistant:
+- `main.tsx` receives HA's injected `hass` object and calls `HassStore.syncFromLive(value.states)`.
+- Live entities overlay demo entities by entity_id, so real HA wins on collisions and demo-only entities remain available.
+- `HassStore.callService()` routes actions to HA only when the target entity is live. Demo-only targets keep using the local mock handler.
+- `useEntity`, `useHistory`, all tiles, and the edit-mode registry do not need to know whether an entity is live or demo.
+
+Still missing: live history/statistics. Detail modals currently show generated demo history unless a tile provides its own custom body.
 
 ---
 
@@ -315,7 +320,8 @@ Most recent first. Sections 9.1–9.5 below have round-specific detail.
 
 | Round | Headline shipped |
 |-------|------------------|
-| **11** (current) | **Live HA entities**: `main.tsx` now consumes the `hass` property HA passes to the panel — `HassStore.syncFromLive()` overlays real entities on top of the mock store (live wins on entity-id collision; mock fills gaps). Service calls proxy to the live `hass.callService()`. Mock store remains for dev. **Modal portal**: all modals (`TileModal`, `Palette`, `SampleBrowser`, `AlarmsConfig`) render via `createPortal` into a sibling `<div id="realm-modal-root">` at shadow-root level so RGL's grid-item transforms can't trap them. Backdrops bumped to z-index 9999. **RGL `preventCollision: true`** on the noCompactor so dragging onto an occupied cell snaps back instead of cascading other tiles down. **Duplicate-tile button** moved to a right-side action cluster next to delete (was floating awkwardly between drag handle and X). **Entity picker font** enlarged + switched to sans-serif at 14px (was 11px mono). **Detail modals** added on Network/Alarm/Heatmap/SpeedTest/NAS. |
+| **12** (current) | **Stabilization / forkability pass**: removed duplicate `EntityDetailModal` component and stale `@dnd-kit` dependencies, tightened modal stacking with a dedicated shadow-root modal layer, labeled EntityPicker rows as LIVE/DEMO and made them easier to read, preserved demo-only service behavior while live HA is connected, genericized demo person entities, added detail modals for Calendar/Appliance/MultiMetric/AreaList, and synced docs to the round-11 live HA state. |
+| **11** | **Live HA entities**: `main.tsx` now consumes the `hass` property HA passes to the panel. `HassStore.syncFromLive()` overlays real entities on top of the mock store (live wins on entity-id collision; mock fills gaps). Service calls proxy to the live `hass.callService()` for live entities. Mock store remains for dev and demo-only tiles. **Modal portal**: all modals (`TileModal`, `Palette`, `SampleBrowser`, `AlarmsConfig`) render via `createPortal` into a sibling `<div id="realm-modal-root">` at shadow-root level so RGL's grid-item transforms can't trap them. **RGL `preventCollision: true`** on the noCompactor so dragging onto an occupied cell snaps back instead of cascading other tiles down. **Duplicate-tile button** moved to a right-side action cluster next to delete (was floating awkwardly between drag handle and X). **Entity picker font** enlarged + switched to sans-serif. **Detail modals** added on Network/Alarm/Heatmap/SpeedTest/NAS. |
 | **10** | **EntityDetailModal wired** on Tank/Gauge/Donut/Bar/Value/Sparkline/HistoryBars (click outside edit mode → modal with 60-pt history plot + attributes table). **Custom detail modals** for WeatherTile (extended forecast + full conditions) and CameraTile (full-image viewport + metadata). **Sample dashboard library** (Welcome, Smart Home Starter, Homestead Ops, Showcase) browsable via TEMPLATES button in edit banner; each loads as a new tab. **First-run Welcome** layout — pure HeaderTiles, zero entity dependencies, so a fresh install looks intentional. **Inline tab rename** replaces `window.prompt`. **EntityPicker** inside AlarmsConfig replaces `window.prompt`. **Keyboard shortcuts**: `E` toggle edit, `/` open palette (autofocuses search), `Esc` deselect. LAYOUT_VERSION 5 (v4 migrates forward cleanly). |
 | **9** | Multi-tab system (per-tab layout + alarm config), alarm chips strip, duplicate tile, Inspector + Palette readability pass with text search, Blinds/Curtain position sliders, Thermostat `showX` checkboxes, Laundry `washerExtras`/`dryerExtras`, HeaderTile, switched to `noCompactor` (iOS-style fixed positions, gaps allowed). LAYOUT_VERSION 4. |
 | **8** | Migrated Overview from @dnd-kit/sortable + custom-drag to **react-grid-layout v2**. Explicit `(x, y, w, h)` coordinates per tile. RGL handles drag (via `dragConfig.handle`) and resize (via `resizeConfig`). EditableTile.tsx deprecated; rendering inlined in `Overview.tsx`. LAYOUT_VERSION 3. |
@@ -334,7 +340,7 @@ Items from this round's feedback:
 - ✅ **WeatherRadarTile iframe slot** — ships with empty `iframeUrl` (placeholder visible). Set your own embed URL (windy.com / rainviewer / NOAA) via the inspector.
 - ✅ **Drag/drop improvements** — fractional transforms now rounded to integer pixels; transform transition removed from `.tile`; hover effects suppressed in edit mode.
 - ✅ **CameraTile real feeds** — auto-reads `entity.attributes.entity_picture` when `snapshotUrl` is empty, with configurable `refreshSeconds` polling.
-- 🟡 **Modal popups on individual tiles** — `EntityDetailModal` + `TileModal` + `useDetailModal` pattern shipped (`src/components/tiles/EntityDetailModal.tsx`). **Wiring onto each tile is incremental work** — pattern per tile: `useState` + add `onClick` to `BaseTile` + conditional `<EntityDetailModal entityId=... title=... onClose=... />`. Wire incrementally as bandwidth allows.
+- 🟡 **Modal popups on individual tiles** — `EntityDetailModal` + `TileModal` pattern shipped (`src/components/EntityDetailModal.tsx`). **Wiring onto each tile is incremental work** — pattern per tile: `useState` + add `onClick` to `BaseTile` + conditional `<EntityDetailModal entityId=... title=... onClose=... />`. Wire incrementally as bandwidth allows.
 
 ## 9.5 Feedback follow-ups (round 5)
 
@@ -366,7 +372,7 @@ Items addressed this round:
 
 Track decisions we've deferred and known issues.
 
-- **Real HA wiring (phase 6+):** Wire main.tsx setters → LiveHassStore. Replace MockHass in App.tsx with the live store, but keep the mock available behind a dev flag for offline iteration.
+- **Live history provider:** State and service calls are live, but history charts still use generated demo history. Next step is HA history/statistics integration.
 - **scada-panel sunset:** When Realm has feature parity, retire `scada-panel`. Remove `panel_custom` entry, delete `/config/www/scada-panel/`, remove `scada_dark.yaml` (or keep as a personal backup).
 - **PlotTile zoom/pan:** Currently no interactive zoom. Worth adding via uPlot once we have real history data.
 - **Edit mode on phone:** Drag works on touch. Inspector is full-screen on <700px. Verify ergonomics on real phone use.

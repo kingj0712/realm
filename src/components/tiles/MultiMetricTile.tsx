@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { TileModal } from './TileModal';
 
 interface MetricThreshold {
   warn?: { lt?: number; gt?: number };
@@ -67,6 +68,24 @@ const MetricCell: FC<MetricSpec> = ({ entityId, label, precision, unit, threshol
   );
 };
 
+const MetricDetailRow: FC<MetricSpec> = ({ entityId, label, precision, unit }) => {
+  const entity = useEntity(entityId);
+  const raw = entity ? parseFloat(entity.state) : NaN;
+  const isNumeric = Number.isFinite(raw);
+  const display = entity
+    ? isNumeric && precision != null ? raw.toFixed(precision) : entity.state
+    : 'n/a';
+  const u = unit ?? (entity?.attributes.unit_of_measurement as string | undefined) ?? '';
+  const friendly = (entity?.attributes.friendly_name as string | undefined) ?? entityId;
+
+  return (
+    <div className="entity-detail__attr">
+      <span className="entity-detail__attr-key">{label}</span>
+      <span className="entity-detail__attr-val">{display}{u ? ` ${u}` : ''} ({friendly})</span>
+    </div>
+  );
+};
+
 export const MultiMetricTile: FC<MultiMetricTileProps> = ({
   label,
   icon,
@@ -74,15 +93,31 @@ export const MultiMetricTile: FC<MultiMetricTileProps> = ({
   status,
   metrics,
   columns = 2,
-}) => (
-  <BaseTile label={label} status={status} icon={icon} pill={pill}>
-    <div
-      className="multi-metric-tile"
-      style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
-    >
-      {metrics.map((m) => (
-        <MetricCell key={m.entityId} {...m} />
-      ))}
-    </div>
-  </BaseTile>
-);
+}) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <BaseTile label={label} status={status} icon={icon} pill={pill} onClick={() => setOpen(true)}>
+        <div
+          className="multi-metric-tile"
+          style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+        >
+          {metrics.map((m) => (
+            <MetricCell key={m.entityId} {...m} />
+          ))}
+        </div>
+      </BaseTile>
+      {open && (
+        <TileModal title={label} pill={pill} onClose={() => setOpen(false)} size="lg">
+          <div className="entity-detail__attrs">
+            <div className="entity-detail__attrs-head">METRICS</div>
+            <div className="entity-detail__attrs-body">
+              {metrics.map((m) => <MetricDetailRow key={m.entityId} {...m} />)}
+            </div>
+          </div>
+        </TileModal>
+      )}
+    </>
+  );
+};

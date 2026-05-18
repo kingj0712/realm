@@ -2264,11 +2264,12 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
-  z-index: 9999;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-3);
+  pointer-events: auto;
 }
 .palette {
   width: 880px;
@@ -2448,12 +2449,12 @@
   padding: 8px 10px;
   color: var(--on-surface);
   font-family: var(--font-body, 'Barlow'), system-ui, sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.4;
 }
 .entity-picker__select { padding: 6px; }
-.entity-picker__select option { padding: 4px 6px; }
-.entity-picker__current { font-family: var(--font-mono); font-size: 12px; color: var(--on-surface-muted); letter-spacing: 0.04em; }
+.entity-picker__select option { padding: 5px 7px; font-size: 14px; }
+.entity-picker__current { font-family: var(--font-body); font-size: 13px; color: var(--on-surface-muted); letter-spacing: 0.02em; }
 
 /* Icon picker */
 .icon-picker { position: relative; }
@@ -2574,7 +2575,8 @@
 .row-editor__cell { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 
 /* ===== TileModal (generic detail/info modal) ===== */
-.tile-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: var(--space-3); }
+#realm-modal-root { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; }
+.tile-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1; display: flex; align-items: center; justify-content: center; padding: var(--space-3); pointer-events: auto; }
 .tile-modal { width: 600px; max-width: 100%; max-height: 85vh; background: var(--surface-container-low); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); display: flex; flex-direction: column; overflow: hidden; }
 .tile-modal--sm { width: 400px; }
 .tile-modal--lg { width: 800px; }

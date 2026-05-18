@@ -59,5 +59,4 @@ export { ApplianceTile } from './ApplianceTile';
 export { HomelabTile } from './HomelabTile';
 export { BlindsTile } from './BlindsTile';
 export { WeeklyDigestTile } from './WeeklyDigestTile';
-export { EntityDetailModal } from './EntityDetailModal';
 export { HeaderTile } from './HeaderTile';

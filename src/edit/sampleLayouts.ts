@@ -143,7 +143,7 @@ export function showcaseLayout(): LayoutItem[] {
   return pack([
     { type: 'ClockTile' },
     { type: 'WeatherTile' },
-    { type: 'PresenceListTile', props: { label: 'PRESENCE', icon: 'mdiAccountGroup', personIds: ['person.jake', 'person.sam', 'person.guest'] } },
+    { type: 'PresenceListTile', props: { label: 'PRESENCE', icon: 'mdiAccountGroup', personIds: ['person.user_1', 'person.user_2', 'person.guest'] } },
 
     { type: 'SunMoonTile' },
     { type: 'WindCompassTile' },

@@ -10,6 +10,13 @@ type ServiceHandler = (
 ) => Promise<void> | void;
 type HistoryProvider = (entityId: string, points: number) => number[];
 
+function getTargetEntityIds(target?: ServiceTarget): string[] {
+  const entityId = target?.entity_id;
+  if (Array.isArray(entityId)) return entityId;
+  if (typeof entityId === 'string' && entityId) return [entityId];
+  return [];
+}
+
 // Per-entity pub/sub keyed by entity_id. Designed to back useSyncExternalStore:
 // each subscriber gets called when its entity_id changes, so React re-renders
 // only the components whose entity actually moved.
@@ -17,6 +24,8 @@ export class HassStore {
   private states: Record<string, HassEntity>;
   private listeners = new Map<string, Set<EntityListener>>();
   private serviceHandler: ServiceHandler | null = null;
+  private liveServiceHandler: ServiceHandler | null = null;
+  private liveEntityIds = new Set<string>();
   private historyProvider: HistoryProvider | null = null;
 
   constructor(initialStates: Record<string, HassEntity> = {}) {
@@ -29,6 +38,14 @@ export class HassStore {
 
   getAllEntities(): Record<string, HassEntity> {
     return this.states;
+  }
+
+  isLiveEntity(entityId: string): boolean {
+    return this.liveEntityIds.has(entityId);
+  }
+
+  getEntitySource(entityId: string): 'live' | 'demo' {
+    return this.isLiveEntity(entityId) ? 'live' : 'demo';
   }
 
   // Merge `partial` into the entity and notify subscribers.
@@ -66,14 +83,21 @@ export class HassStore {
     this.serviceHandler = handler;
   }
 
+  setLiveServiceHandler(handler: ServiceHandler): void {
+    this.liveServiceHandler = handler;
+  }
+
   async callService(
     domain: string,
     service: string,
     serviceData?: Record<string, unknown>,
     target?: ServiceTarget,
   ): Promise<void> {
-    if (this.serviceHandler) {
-      await this.serviceHandler(domain, service, serviceData, target);
+    const targetedIds = getTargetEntityIds(target);
+    const shouldUseLive = targetedIds.length > 0 && targetedIds.some((id) => this.isLiveEntity(id));
+    const handler = shouldUseLive ? this.liveServiceHandler : this.serviceHandler;
+    if (handler) {
+      await handler(domain, service, serviceData, target);
     }
   }
 
@@ -96,6 +120,7 @@ export class HassStore {
     for (const id of Object.keys(liveStates)) {
       const live = liveStates[id];
       if (!live || !live.state) continue;
+      this.liveEntityIds.add(id);
       const prev = this.states[id];
       if (
         prev

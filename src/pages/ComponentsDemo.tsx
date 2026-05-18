@@ -169,9 +169,9 @@ export const ComponentsDemo: FC = () => (
     <section className="demo-section">
       <h2 className="demo-section__title">PersonTile · PresenceListTile</h2>
       <div className="demo-grid">
-        <PersonTile entityId="person.jake" icon={<Icon path={mdiAccount} />} />
-        <PersonTile entityId="person.sam" icon={<Icon path={mdiAccount} />} />
-        <PresenceListTile icon={<Icon path={mdiAccountGroup} />} personIds={['person.jake', 'person.sam', 'person.guest']} />
+        <PersonTile entityId="person.user_1" icon={<Icon path={mdiAccount} />} />
+        <PersonTile entityId="person.user_2" icon={<Icon path={mdiAccount} />} />
+        <PresenceListTile icon={<Icon path={mdiAccountGroup} />} personIds={['person.user_1', 'person.user_2', 'person.guest']} />
       </div>
     </section>
 

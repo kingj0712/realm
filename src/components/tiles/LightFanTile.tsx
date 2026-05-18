@@ -11,8 +11,8 @@ interface LightFanTileProps {
   fanEntityId: string;
 }
 
-// Simple two-button tile: light on/off + fan on/off. Per Jake's feedback —
-// the slider/speed picker was too much for the common case.
+// Simple two-button tile: light on/off + fan on/off.
+// The slider/speed picker was too much for the common case.
 export const LightFanTile: FC<LightFanTileProps> = ({ label = 'LIGHT + FAN', icon, lightEntityId, fanEntityId }) => {
   const light = useEntity(lightEntityId);
   const fan = useEntity(fanEntityId);
