@@ -69,10 +69,13 @@ interface LayoutContextValue {
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
 function freshDefault(): DashboardState {
-  // New install: Welcome (active) + Demo. User can delete Demo if they want.
+  // New install: Welcome (active) + Showcase. User can delete Showcase if
+  // they want. Welcome holds first-run instructions; Showcase is a curated
+  // polished example (not an exhaustive tile catalog — see /components for
+  // that).
   const welcome: Tab = { id: uid(), name: 'Welcome', items: welcomeLayout(), alarmEntities: [] };
-  const demo: Tab = { id: uid(), name: 'Demo', items: showcaseLayout(), alarmEntities: [] };
-  return { version: LAYOUT_VERSION, tabs: [welcome, demo], activeTabId: welcome.id };
+  const showcase: Tab = { id: uid(), name: 'Showcase', items: showcaseLayout(), alarmEntities: [] };
+  return { version: LAYOUT_VERSION, tabs: [welcome, showcase], activeTabId: welcome.id };
 }
 
 function loadState(): DashboardState {

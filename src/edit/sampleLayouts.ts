@@ -1,9 +1,26 @@
+// Three roles, intentionally distinct:
+//   1. welcomeLayout — first-run guidance only, zero entity dependencies.
+//      Pure HeaderTiles. New installs land here so the dashboard never opens
+//      to a wall of "unavailable" tiles.
+//   2. showcaseLayout — curated polished example of what a finished Realm
+//      dashboard looks like. ~25 tiles arranged in named sections. Loads as
+//      the "Showcase" tab on fresh installs and via the TEMPLATES picker.
+//   3. The Components page (`/components`) — exhaustive catalog of every
+//      tile variant. NOT this file. Lives in `src/pages/ComponentsDemo.tsx`.
+//
+// Smart Home Starter and Homestead Ops are middle ground samples that load
+// via the TEMPLATES picker only.
+
 import type { LayoutItem } from './types';
 import { TILE_BY_TYPE } from './tileRegistry';
 import { uid } from '../hass/uid';
 
 interface TileSpec {
   type: string;
+  // Explicit grid placement is optional. pack() ignores x/y and lays tiles in
+  // reading order; showcaseLayout supplies them so the rhythm is exact.
+  x?: number;
+  y?: number;
   w?: number;
   h?: number;
   props?: Record<string, unknown>;
@@ -136,124 +153,122 @@ export function homesteadOpsLayout(): LayoutItem[] {
   ]);
 }
 
-// Full demo: every tile in the registry, populated with mock data. Useful
-// as a reference, or as a base layout to delete tiles from until only the
-// ones you want remain.
+// Showcase layout: curated, polished example of what a finished Realm
+// dashboard looks like. Not exhaustive. Sectioned with HeaderTiles, packed
+// tightly so it looks intentional out of the box at 1440p/2560p. The
+// Components page (`/components`) remains the exhaustive catalog of every
+// tile variant — this layout deliberately picks the ~25 most representative
+// tiles and skips one-offs.
+//
+// Layout uses explicit x/y/w/h (not pack()) because the rhythm matters too
+// much to leave to row-wrapping. Heights cluster per section so tiles align
+// horizontally inside each band.
 export function showcaseLayout(): LayoutItem[] {
-  return pack([
-    { type: 'ClockTile' },
-    { type: 'WeatherTile' },
-    { type: 'PresenceListTile', props: { label: 'PRESENCE', icon: 'mdiAccountGroup', personIds: ['person.user_1', 'person.user_2', 'person.guest'] } },
+  const tiles = (): TileSpec[] => [
+    // ===== Section 1: Environment =====
+    H('ENVIRONMENT', 'info', 0, 0),
+    T('WeatherTile', 0, 2, 6, 9),
+    T('PresenceListTile', 6, 2, 3, 9, { label: 'PRESENCE', icon: 'mdiAccountGroup', personIds: ['person.user_1', 'person.user_2', 'person.guest'] }),
+    T('NotificationFeedTile', 9, 2, 3, 9),
+    // Sub-row of compact environment readings — consistent h=5 keeps the band tight.
+    T('SunMoonTile', 0, 11, 3, 7),
+    T('WindCompassTile', 3, 11, 3, 7),
+    T('ValueTile', 6, 11, 3, 5, { entityId: 'sensor.outdoor_temperature', precision: 0, icon: 'mdiThermometer', label: 'OUTDOOR TEMP' }),
+    T('ValueTile', 9, 11, 3, 5, { entityId: 'sensor.outdoor_humidity', precision: 0, icon: 'mdiWaterPercent', label: 'HUMIDITY' }),
+    T('ClockTile', 6, 16, 6, 2),
 
-    { type: 'SunMoonTile' },
-    { type: 'WindCompassTile' },
-    { type: 'NotificationFeedTile' },
-    { type: 'TrashScheduleTile' },
-
-    { type: 'AreaListTile', w: 8, props: {
-      label: 'BEDROOMS', icon: 'mdiBed',
-      rows: [
-        { label: 'MASTER', cells: [
-          { type: 'value', entityId: 'sensor.master_bedroom_temp', precision: 0 },
-          { type: 'value', entityId: 'sensor.master_bedroom_humidity', precision: 0 },
-          { type: 'binary', entityId: 'binary_sensor.master_bedroom_occupancy', icon: 'mdiMotionSensor', activeStatus: 'info' },
-          { type: 'toggle', entityId: 'light.master_bedroom', icon: 'mdiLightbulbOn' },
-        ] },
-        { label: 'KIDS', cells: [
-          { type: 'value', entityId: 'sensor.kids_bedroom_temp', precision: 0 },
-          { type: 'value', entityId: 'sensor.kids_bedroom_humidity', precision: 0 },
-          { type: 'binary', entityId: 'binary_sensor.kids_bedroom_occupancy', icon: 'mdiMotionSensor', activeStatus: 'info' },
-          { type: 'toggle', entityId: 'light.kids_bedroom', icon: 'mdiLightbulbOn' },
-        ] },
-        { label: 'GUEST', cells: [
-          { type: 'value', entityId: 'sensor.guest_bedroom_temp', precision: 0 },
-          { type: 'value', entityId: 'sensor.guest_bedroom_humidity', precision: 0 },
-          { type: 'binary', entityId: 'binary_sensor.guest_bedroom_occupancy', icon: 'mdiMotionSensor', activeStatus: 'info' },
-          { type: 'toggle', entityId: 'light.guest_bedroom', icon: 'mdiLightbulbOn' },
-        ] },
-      ],
-    } },
-    { type: 'ClimateThermostatTile', w: 4 },
-
-    { type: 'MultiMetricTile', w: 6 },
-    { type: 'HVACScheduleTile', w: 6 },
-
-    { type: 'StatusListTile', w: 3, props: {
+    // ===== Section 2: House Status =====
+    H('HOUSE STATUS', 'warn', 0, 18),
+    T('StatusListTile', 0, 20, 4, 7, {
       label: 'ENTRY POINTS', icon: 'mdiDoor',
       entries: [
-        { entityId: 'binary_sensor.front_door', label: 'FRONT', stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
-        { entityId: 'binary_sensor.back_door', label: 'BACK', stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
-        { entityId: 'binary_sensor.patio_door', label: 'PATIO', stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
+        { entityId: 'binary_sensor.front_door',  label: 'FRONT',  stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
+        { entityId: 'binary_sensor.back_door',   label: 'BACK',   stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
+        { entityId: 'binary_sensor.patio_door',  label: 'PATIO',  stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
         { entityId: 'binary_sensor.garage_door', label: 'GARAGE', stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
       ],
-    } },
-    { type: 'AlarmTile', w: 3, props: { entityId: 'binary_sensor.water_leak_basement', icon: 'mdiWaterAlert' } },
-    { type: 'AlarmTile', w: 3, props: { entityId: 'binary_sensor.sump_high_water', icon: 'mdiWaterAlert' } },
-    { type: 'ButtonTile', w: 3, props: {
+    }),
+    T('AlarmTile', 4, 20, 2, 7, { entityId: 'binary_sensor.water_leak_basement', icon: 'mdiWaterAlert', label: 'WATER LEAK' }),
+    T('AlarmTile', 6, 20, 2, 7, { entityId: 'binary_sensor.sump_high_water', icon: 'mdiWaterAlert', label: 'SUMP HIGH' }),
+    T('MailboxTile', 8, 20, 2, 7),
+    T('TrashScheduleTile', 10, 20, 2, 7),
+
+    // ===== Section 3: Energy =====
+    H('ENERGY', 'ok', 0, 27),
+    T('EnergyFlowTile', 0, 29, 6, 10),
+    T('SankeyTile', 6, 29, 6, 10),
+    T('TankTile', 0, 39, 3, 9),
+    T('TankTile', 3, 39, 3, 9, { entityId: 'sensor.propane_level', icon: 'mdiBarrel', capacity: '500 GAL' }),
+    T('GaugeTile', 6, 39, 3, 9),
+    T('DonutTile', 9, 39, 3, 9),
+
+    // ===== Section 4: Comfort =====
+    H('COMFORT', 'info', 0, 48),
+    T('ClimateThermostatTile', 0, 50, 4, 10),
+    T('AirPurifierTile', 4, 50, 4, 10),
+    T('LightFanTile', 8, 50, 4, 10),
+
+    // ===== Section 5: Security =====
+    H('SECURITY', 'warn', 0, 60),
+    T('CameraTile', 0, 62, 4, 9, { entityId: 'camera.front_porch', icon: 'mdiCamera' }),
+    T('CameraTile', 4, 62, 4, 9, { entityId: 'camera.backyard', icon: 'mdiCamera' }),
+    T('ButtonTile', 8, 62, 2, 9, {
       entityId: 'cover.garage_door', icon: 'mdiGarage', buttonText: 'OPERATE',
       states: { open: { pill: 'OPEN', status: 'warn', buttonText: 'CLOSE' }, closed: { pill: 'CLOSED', status: 'ok', buttonText: 'OPEN' } },
-    } },
+      confirmBeforeAction: true,
+      confirmMessage: 'Operate the garage door?',
+    }),
+    T('BlindsTile', 10, 62, 2, 9),
 
-    { type: 'CameraTile', w: 4, props: { entityId: 'camera.front_porch', icon: 'mdiCamera' } },
-    { type: 'CameraTile', w: 4, props: { entityId: 'camera.backyard', icon: 'mdiCamera' } },
-    { type: 'WeatherRadarTile', w: 4 },
+    // ===== Section 6: Systems =====
+    H('SYSTEMS', 'info', 0, 71),
+    T('NetworkTile', 0, 73, 3, 5),
+    T('SpeedTestTile', 3, 73, 3, 5),
+    T('NASTile', 6, 73, 3, 5),
+    T('HomelabTile', 9, 73, 3, 5),
 
-    { type: 'EnergyFlowTile', w: 6 },
-    { type: 'SankeyTile', w: 6 },
-    { type: 'TankTile', w: 3 },
-    { type: 'TankTile', w: 3, props: { entityId: 'sensor.propane_level', icon: 'mdiBarrel', capacity: '500 GAL' } },
-    { type: 'DonutTile', w: 3 },
-    { type: 'GaugeTile', w: 3 },
-    { type: 'PlotTile', w: 6 },
-    { type: 'HistoryBarsTile', w: 6 },
+    // ===== Section 7: Household =====
+    H('HOUSEHOLD', 'ok', 0, 78),
+    T('LaundryTile', 0, 80, 4, 9),
+    T('VehicleTile', 4, 80, 4, 9),
+    T('CalendarTile', 8, 80, 4, 9),
 
-    { type: 'IrrigationTile', w: 3, props: {
-      label: 'IRRIGATION', icon: 'mdiSprinkler',
-      zones: [
-        { entityId: 'switch.irrigation_zone_1', label: 'LAWN' },
-        { entityId: 'switch.irrigation_zone_2', label: 'GARDEN' },
-        { entityId: 'switch.irrigation_zone_3', label: 'BEDS' },
-        { entityId: 'switch.irrigation_zone_4', label: 'ORCHARD' },
-      ],
-    } },
-    { type: 'GeneratorTile', w: 3 },
-    { type: 'BeehiveTile', w: 3 },
-    { type: 'MailboxTile', w: 3 },
-    { type: 'VehicleTile', w: 4 },
-    { type: 'LaundryTile', w: 4 },
-    { type: 'VacuumTile', w: 4 },
+    // ===== Section 8: Homestead =====
+    H('HOMESTEAD', 'info', 0, 89),
+    T('WeeklyDigestTile', 0, 91, 4, 10),
+    T('BeehiveTile', 4, 91, 4, 10),
+    T('GeneratorTile', 8, 91, 4, 10),
+  ];
 
-    { type: 'ApplianceTile', w: 3, props: { entityId: 'sensor.dishwasher',   icon: 'mdiWrench' } },
-    { type: 'ApplianceTile', w: 3, props: { entityId: 'sensor.oven',         icon: 'mdiFire' } },
-    { type: 'ApplianceTile', w: 3, props: { entityId: 'sensor.refrigerator', icon: 'mdiHome' } },
-    { type: 'ApplianceTile', w: 3, props: { entityId: 'sensor.microwave',    icon: 'mdiWrench' } },
+  return tiles().map((spec) => buildItem(spec));
+}
 
-    { type: 'NetworkTile', w: 3 },
-    { type: 'SpeedTestTile', w: 3 },
-    { type: 'StarlinkTile', w: 3 },
-    { type: 'UDMTile', w: 3 },
-    { type: 'NASTile', w: 4 },
-    { type: 'HomelabTile', w: 4 },
-    { type: 'ServerStatsTile', w: 4 },
+// ---- Internal helpers used only by showcaseLayout -----------------------
 
-    { type: 'CalendarTile', w: 4 },
-    { type: 'TodoListTile', w: 4 },
-    { type: 'CountdownTile', w: 4 },
-    { type: 'SceneButtonTile', w: 3, props: { entityId: 'scene.good_morning', icon: 'mdiWeatherSunny' } },
-    { type: 'SceneButtonTile', w: 3, props: { entityId: 'scene.movie_night', icon: 'mdiAutoFix' } },
-    { type: 'SceneButtonTile', w: 3, props: { entityId: 'scene.bedtime',     icon: 'mdiBed' } },
-    { type: 'SceneButtonTile', w: 3, props: { entityId: 'scene.away_mode',   icon: 'mdiLockOutline' } },
+// Section header — full width, short h=2 band. accent maps to HeaderTile prop.
+function H(text: string, accent: string, x: number, y: number): TileSpec {
+  return { type: 'HeaderTile', x, y, w: 12, h: 2, props: { text, accent } };
+}
 
-    { type: 'AirPurifierTile', w: 4 },
-    { type: 'LightFanTile', w: 4 },
-    { type: 'BlindsTile', w: 4 },
-    { type: 'WeeklyDigestTile', w: 6 },
-    { type: 'ColorPickerTile', w: 3 },
-    { type: 'SliderTile', w: 3 },
-    { type: 'MediaPlayerTile', w: 6 },
-    { type: 'TimerTile', w: 3 },
-    { type: 'HeatmapTile', w: 4 },
-  ]);
+// Curated tile spec with explicit grid placement. props merge over registry defaults.
+function T(type: string, x: number, y: number, w: number, h: number, props?: Record<string, unknown>): TileSpec {
+  return { type, x, y, w, h, props };
+}
+
+// TileSpec → LayoutItem with registry defaults merged in. Caller supplies x/y/w/h.
+function buildItem(spec: TileSpec): LayoutItem {
+  const meta = TILE_BY_TYPE[spec.type];
+  const w = spec.w ?? meta?.defaultColSpan ?? 3;
+  const h = spec.h ?? meta?.defaultRowSpan ?? 7;
+  return {
+    id: uid(),
+    type: spec.type,
+    x: spec.x ?? 0,
+    y: spec.y ?? 0,
+    w,
+    h,
+    props: { ...(meta?.defaultProps ?? {}), ...(spec.props ?? {}) },
+  };
 }
 
 export const SAMPLE_LAYOUTS: SampleLayout[] = [
@@ -277,8 +292,8 @@ export const SAMPLE_LAYOUTS: SampleLayout[] = [
   },
   {
     id: 'showcase',
-    name: 'Demo / Showcase',
-    description: 'Every tile in the registry, populated with mock data. Great for exploring what Realm can render before customizing.',
+    name: 'Showcase',
+    description: 'Curated polished dashboard example — Environment / House Status / Energy / Comfort / Security / Systems / Household / Homestead. ~25 tiles, sectioned and aligned. The /components page is the exhaustive tile catalog.',
     build: showcaseLayout,
   },
 ];

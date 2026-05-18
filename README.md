@@ -15,7 +15,7 @@ The four pillars guiding every change:
 3. **Extremely customizable** — rich per-tile Inspector, themes, per-breakpoint layouts, tile templates.
 4. **Fun** — animations serve the data; personality tiles invited; tiles that delight.
 
-> **Current state (v0.14):** Realm is actively evolving from "the author's personal dashboard" toward "fork-and-customize for anyone." Fresh installs land on a **Welcome tab** with zero entity dependencies, plus a separate **Demo tab** showing every tile type. Edit mode now bundles four flows to make a dashboard yours: **TEMPLATES** drops in a Smart Home / Homestead / Showcase layout as a new tab, **BUILD FROM HA** scans your live entities and proposes a starter, **REMAP** bulk-swaps demo entity IDs to real HA entities across the active tab, and **SNAPSHOTS** keeps named rollbacks of any layout. Roadmap in [`WIKI.md`](./WIKI.md) section 1.5.
+> **Current state (v0.14.1):** Realm is actively evolving from "the author's personal dashboard" toward "fork-and-customize for anyone." Fresh installs land on a **Welcome tab** with zero entity dependencies, plus a curated **Showcase tab** demonstrating a polished dashboard across eight named sections (Environment / House Status / Energy / Comfort / Security / Systems / Household / Homestead). The exhaustive tile catalog lives on the `/components` page. Edit mode bundles four flows to make a dashboard yours: **TEMPLATES** drops in a Smart Home / Homestead / Showcase layout as a new tab, **BUILD FROM HA** scans your live entities and proposes a starter, **REMAP** bulk-swaps demo entity IDs to real HA entities across the active tab, and **SNAPSHOTS** keeps named rollbacks of any layout. Roadmap in [`WIKI.md`](./WIKI.md) section 1.5.
 
 ## What's in here
 
