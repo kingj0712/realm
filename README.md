@@ -23,6 +23,8 @@ The four pillars guiding every change:
 - **Edit mode** with a per-tile Inspector, searchable Palette to add tiles, drag-rearrange, drag-resize, duplicate, and per-tab layouts (multiple dashboard pages).
 - **Per-tab alarm chips** — a pulsing strip at the top of each tab showing whichever entities you've designated as alarm-watch.
 - **Live HA plus demo data store** that mirrors HA's `hass.states` shape. Inside Home Assistant, live entities overlay the demo pool and live service calls route to HA. In local dev, the same demo pool keeps every tile interactive.
+- **Live history for live entities** in detail charts, with generated demo history still available for demo-only entities.
+- **Layout export/import** from edit mode so dashboard snapshots can be backed up before layout experiments.
 - **Shadow DOM isolation** — Realm fully owns its styling and doesn't leak into HA's chrome.
 - **60+ tile types** covering most home-automation use cases. See `WIKI.md` section 3 for the full catalog.
 
@@ -34,7 +36,7 @@ The four pillars guiding every change:
 | Layout | react-grid-layout v2 (iOS-style fixed positioning, `compactor: noCompactor`) |
 | Charts | ECharts (PlotTile only — sparkline/heatmap/etc. are hand-rolled SVG) |
 | Subscriptions | `useSyncExternalStore` selector hooks per entity, so only components watching a state change re-render |
-| Persistence | localStorage; layout schema is JSON-serializable and versioned |
+| Persistence | localStorage; layout schema is JSON-serializable, versioned, and exportable |
 | Hosting | Built as a single ES module bundle, served by HA via `panel_custom` from `/local/realm/realm.js` |
 
 Read [`CLAUDE.md`](./CLAUDE.md) for the architectural quickstart and [`WIKI.md`](./WIKI.md) for the tile catalog, change log, and open questions.
@@ -83,7 +85,7 @@ Realm ships with a companion HA theme (`themes/realm_dark.yaml` in the author's 
 
 ## Status
 
-Active development. The author posts incremental rounds of work. See `WIKI.md` section 9.0 for the changelog. Recent rounds (7 to 12): react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, detail modals, first-run Welcome layout, sample dashboard library, live HA entity overlay, modal portal fixes, and live/demo entity picker labels.
+Active development. The author posts incremental rounds of work. See `WIKI.md` section 9.0 for the changelog. Recent rounds (7 to 13): react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, detail modals, first-run Welcome layout, sample dashboard library, live HA entity overlay, modal portal fixes, live/demo entity picker labels, live HA history, and layout export/import.
 
 ## Keyboard shortcuts
 
@@ -95,8 +97,8 @@ Shortcuts are skipped while typing in any input.
 
 ## Not done yet
 
-- Live history/statistics provider. Current history charts still use generated demo history.
 - More tiles deserve custom detail modals, especially Sankey, MultiMetric, AreaList, Calendar, and appliance-style tiles.
+- Entity remapping helper for bulk swapping demo IDs to real HA IDs.
 - Tab drag-to-reorder.
 - Floorplans route.
 - Per-breakpoint layouts (currently all breakpoints share the lg layout).

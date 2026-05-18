@@ -46,6 +46,8 @@ interface LayoutContextValue {
   updateTile: (id: string, patch: Partial<LayoutItem> | ((it: LayoutItem) => LayoutItem)) => void;
   reorderTiles: (orderedIds: string[]) => void;
   setActiveTabAlarmEntities: (entities: string[]) => void;
+  exportLayout: () => string;
+  importLayout: (raw: string) => void;
   resetLayout: () => void;
 }
 
@@ -86,6 +88,44 @@ function saveState(state: DashboardState): void {
   } catch {
     // non-fatal
   }
+}
+
+function isLayoutItem(value: unknown): value is LayoutItem {
+  const item = value as LayoutItem;
+  return !!item
+    && typeof item.id === 'string'
+    && typeof item.type === 'string'
+    && typeof item.x === 'number'
+    && typeof item.y === 'number'
+    && typeof item.w === 'number'
+    && typeof item.h === 'number'
+    && typeof item.props === 'object'
+    && item.props !== null;
+}
+
+function parseImport(raw: string): DashboardState {
+  const parsed = JSON.parse(raw) as Partial<DashboardState>;
+  if (!Array.isArray(parsed.tabs) || parsed.tabs.length === 0) {
+    throw new Error('Snapshot must include at least one tab.');
+  }
+  const tabs: Tab[] = parsed.tabs.map((tab, index) => {
+    if (!tab || typeof tab.id !== 'string' || typeof tab.name !== 'string' || !Array.isArray(tab.items)) {
+      throw new Error(`Tab ${index + 1} is not valid.`);
+    }
+    if (!tab.items.every(isLayoutItem)) {
+      throw new Error(`Tab ${tab.name} contains an invalid tile.`);
+    }
+    return {
+      id: tab.id,
+      name: tab.name,
+      items: tab.items,
+      alarmEntities: Array.isArray(tab.alarmEntities) ? tab.alarmEntities.filter((id): id is string => typeof id === 'string') : [],
+    };
+  });
+  const activeTabId = typeof parsed.activeTabId === 'string' && tabs.some((t) => t.id === parsed.activeTabId)
+    ? parsed.activeTabId
+    : tabs[0].id;
+  return { version: LAYOUT_VERSION, tabs, activeTabId };
 }
 
 export const LayoutProvider: FC<{ children: ReactNode }> = ({ children }) => {
@@ -214,6 +254,14 @@ export const LayoutProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }));
   }, []);
 
+  const exportLayout = useCallback(() => JSON.stringify({ ...state, version: LAYOUT_VERSION }, null, 2), [state]);
+
+  const importLayout = useCallback((raw: string) => {
+    const next = parseImport(raw);
+    setState(next);
+    setSelectedTileId(null);
+  }, []);
+
   const resetLayout = useCallback(() => {
     setState(() => freshDefault());
     setSelectedTileId(null);
@@ -236,12 +284,14 @@ export const LayoutProvider: FC<{ children: ReactNode }> = ({ children }) => {
       addTab, addTabWithLayout, renameTab, deleteTab, switchTab,
       addTile, removeTile, duplicateTile, updateTile, reorderTiles,
       setActiveTabAlarmEntities,
+      exportLayout,
+      importLayout,
       resetLayout,
     }),
     [state.tabs, state.activeTabId, activeTab, isEditing, selectedTileId,
      addTab, addTabWithLayout, renameTab, deleteTab, switchTab,
      addTile, removeTile, duplicateTile, updateTile, reorderTiles,
-     setActiveTabAlarmEntities, resetLayout],
+     setActiveTabAlarmEntities, exportLayout, importLayout, resetLayout],
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;

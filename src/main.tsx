@@ -40,6 +40,25 @@ interface HassLike {
     data?: object,
     target?: object,
   ) => Promise<unknown> | void;
+  callApi?: <T = unknown>(
+    method: string,
+    path: string,
+    parameters?: Record<string, unknown>,
+  ) => Promise<T>;
+}
+
+interface HistoryState {
+  state?: string;
+}
+
+function sampleNumericHistory(values: number[], points: number): number[] {
+  if (values.length <= points) return values;
+  const sampled: number[] = [];
+  const step = (values.length - 1) / Math.max(1, points - 1);
+  for (let i = 0; i < points; i += 1) {
+    sampled.push(values[Math.round(i * step)]);
+  }
+  return sampled;
 }
 
 // Custom element HA mounts when the user opens the Realm panel.
@@ -55,6 +74,7 @@ class RealmPanel extends HTMLElement {
   private store: HassStore = createMockStore();
   private _hass: HassLike | null = null;
   private liveHandlerInstalled = false;
+  private liveHistoryInstalled = false;
 
   set hass(value: HassLike | null | undefined) {
     this._hass = value ?? null;
@@ -76,6 +96,28 @@ class RealmPanel extends HTMLElement {
         }
       });
       this.liveHandlerInstalled = true;
+    }
+    if (!this.liveHistoryInstalled && typeof value.callApi === 'function') {
+      this.store.setLiveHistoryProvider(async (entityId, points) => {
+        const hass = this._hass;
+        if (!hass?.callApi) return [];
+        const start = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        try {
+          const result = await hass.callApi<HistoryState[][]>('GET', `history/period/${start}`, {
+            filter_entity_id: entityId,
+            significant_changes_only: false,
+          });
+          const series = result?.[0] ?? [];
+          const numeric = series
+            .map((row) => Number.parseFloat(row.state ?? ''))
+            .filter((value) => Number.isFinite(value));
+          return sampleNumericHistory(numeric, points);
+        } catch (e) {
+          console.warn('[realm] history fetch failed:', e);
+          return [];
+        }
+      });
+      this.liveHistoryInstalled = true;
     }
   }
   get hass(): HassLike | null {

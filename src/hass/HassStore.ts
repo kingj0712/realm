@@ -8,13 +8,17 @@ type ServiceHandler = (
   serviceData?: Record<string, unknown>,
   target?: ServiceTarget,
 ) => Promise<void> | void;
-type HistoryProvider = (entityId: string, points: number) => number[];
+type HistoryProvider = (entityId: string, points: number) => number[] | Promise<number[]>;
 
 function getTargetEntityIds(target?: ServiceTarget): string[] {
   const entityId = target?.entity_id;
   if (Array.isArray(entityId)) return entityId;
   if (typeof entityId === 'string' && entityId) return [entityId];
   return [];
+}
+
+function historyKey(entityId: string, points: number): string {
+  return `${entityId}:${points}`;
 }
 
 // Per-entity pub/sub keyed by entity_id. Designed to back useSyncExternalStore:
@@ -27,6 +31,8 @@ export class HassStore {
   private liveServiceHandler: ServiceHandler | null = null;
   private liveEntityIds = new Set<string>();
   private historyProvider: HistoryProvider | null = null;
+  private liveHistoryProvider: HistoryProvider | null = null;
+  private historyCache = new Map<string, number[]>();
 
   constructor(initialStates: Record<string, HassEntity> = {}) {
     this.states = { ...initialStates };
@@ -48,6 +54,12 @@ export class HassStore {
     return this.isLiveEntity(entityId) ? 'live' : 'demo';
   }
 
+  private clearHistoryCache(entityId: string): void {
+    for (const key of this.historyCache.keys()) {
+      if (key.startsWith(`${entityId}:`)) this.historyCache.delete(key);
+    }
+  }
+
   // Merge `partial` into the entity and notify subscribers.
   // last_changed only advances when `state` actually changes (matches HA semantics).
   setEntity(entityId: string, partial: Partial<HassEntity>): void {
@@ -63,6 +75,7 @@ export class HassStore {
       context: prev?.context ?? { id: uid(), user_id: null, parent_id: null },
     };
     this.states[entityId] = next;
+    if (stateChanged) this.clearHistoryCache(entityId);
     this.listeners.get(entityId)?.forEach((l) => l(next));
   }
 
@@ -105,10 +118,40 @@ export class HassStore {
   // Components consume via useHistory(entityId).
   setHistoryProvider(provider: HistoryProvider): void {
     this.historyProvider = provider;
+    this.historyCache.clear();
+  }
+
+  setLiveHistoryProvider(provider: HistoryProvider): void {
+    this.liveHistoryProvider = provider;
+    this.historyCache.clear();
   }
 
   getHistory(entityId: string, points: number = 24): number[] {
-    return this.historyProvider?.(entityId, points) ?? [];
+    const key = historyKey(entityId, points);
+    const cached = this.historyCache.get(key);
+    if (cached) return cached;
+    const provider = this.isLiveEntity(entityId) && this.liveHistoryProvider
+      ? this.liveHistoryProvider
+      : this.historyProvider;
+    const result = provider?.(entityId, points);
+    if (Array.isArray(result)) {
+      this.historyCache.set(key, result);
+      return result;
+    }
+    return [];
+  }
+
+  async loadHistory(entityId: string, points: number = 24): Promise<number[]> {
+    const key = historyKey(entityId, points);
+    const cached = this.historyCache.get(key);
+    if (cached) return cached;
+    const provider = this.isLiveEntity(entityId) && this.liveHistoryProvider
+      ? this.liveHistoryProvider
+      : this.historyProvider;
+    const result = await provider?.(entityId, points);
+    const history = Array.isArray(result) ? result : [];
+    this.historyCache.set(key, history);
+    return history;
   }
 
   // Bulk update from a real HA `hass.states` snapshot. Live is authoritative,
@@ -130,6 +173,7 @@ export class HassStore {
         continue;
       }
       const now = new Date().toISOString();
+      const stateChanged = live.state !== prev?.state;
       this.states[id] = {
         entity_id: id,
         state: live.state,
@@ -138,6 +182,7 @@ export class HassStore {
         last_updated: live.last_updated ?? now,
         context: live.context ?? prev?.context ?? { id: uid(), user_id: null, parent_id: null },
       };
+      if (stateChanged) this.clearHistoryCache(id);
       this.listeners.get(id)?.forEach((l) => l(this.states[id]));
     }
   }

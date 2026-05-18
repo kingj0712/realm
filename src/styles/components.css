@@ -1923,7 +1923,7 @@
   color: var(--on-surface-muted);
   flex: 1;
 }
-.edit-banner__actions { display: inline-flex; gap: var(--space-1); }
+.edit-banner__actions { display: inline-flex; gap: var(--space-1); flex-wrap: wrap; justify-content: flex-end; }
 .edit-banner__btn {
   background: var(--surface-container);
   color: var(--on-surface-variant);
@@ -1939,6 +1939,7 @@
 .edit-banner__btn:hover { color: var(--accent); }
 .edit-banner__btn--primary { background: var(--status-info-bg); color: var(--status-info); border-color: var(--status-info-border); }
 .edit-banner__btn--done { background: var(--status-ok); color: #052e16; border-color: var(--status-ok); }
+.edit-banner__file { display: none; }
 
 /* Editable tile wrapper */
 .editable-tile {

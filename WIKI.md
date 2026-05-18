@@ -57,7 +57,7 @@ Realm should be **the easiest HA dashboard to customize and the most fun to use*
 - [ ] Per-breakpoint layouts (currently all breakpoints share the lg layout).
 - [ ] Theme picker — surface palette and accent color, not just the SCADA defaults.
 - [ ] Custom row height / column count per tab.
-- [ ] Save layout snapshots (export/import JSON or share via URL hash).
+- [x] Save layout snapshots — done in round 13 with edit-mode EXPORT / IMPORT JSON buttons.
 - [ ] User-defined tile templates (save a configured tile as a reusable preset).
 - [ ] Custom CSS hook for power users.
 
@@ -227,7 +227,7 @@ When Realm runs inside Home Assistant:
 - `HassStore.callService()` routes actions to HA only when the target entity is live. Demo-only targets keep using the local mock handler.
 - `useEntity`, `useHistory`, all tiles, and the edit-mode registry do not need to know whether an entity is live or demo.
 
-Still missing: live history/statistics. Detail modals currently show generated demo history unless a tile provides its own custom body.
+Live entities now use HA's `history/period` API for detail charts when `hass.callApi` is available. Demo-only entities keep generated history. Future work: statistics/long-term history for better performance and longer date ranges.
 
 ---
 
@@ -320,7 +320,8 @@ Most recent first. Sections 9.1–9.5 below have round-specific detail.
 
 | Round | Headline shipped |
 |-------|------------------|
-| **12** (current) | **Stabilization / forkability pass**: removed duplicate `EntityDetailModal` component and stale `@dnd-kit` dependencies, tightened modal stacking with a dedicated shadow-root modal layer, labeled EntityPicker rows as LIVE/DEMO and made them easier to read, preserved demo-only service behavior while live HA is connected, genericized demo person entities, added detail modals for Calendar/Appliance/MultiMetric/AreaList, and synced docs to the round-11 live HA state. |
+| **13** (current) | **Live history + layout snapshots**: `HassStore` now supports async live history separately from generated demo history. `main.tsx` installs a live history provider using HA's `history/period` API when `hass.callApi` exists. Detail charts for live numeric entities can show real recent history. Edit mode now has EXPORT / IMPORT JSON buttons for full dashboard snapshots, with import validation and version normalization. |
+| **12** | **Stabilization / forkability pass**: removed duplicate `EntityDetailModal` component and stale `@dnd-kit` dependencies, tightened modal stacking with a dedicated shadow-root modal layer, labeled EntityPicker rows as LIVE/DEMO and made them easier to read, preserved demo-only service behavior while live HA is connected, genericized demo person entities, added detail modals for Calendar/Appliance/MultiMetric/AreaList, and synced docs to the round-11 live HA state. |
 | **11** | **Live HA entities**: `main.tsx` now consumes the `hass` property HA passes to the panel. `HassStore.syncFromLive()` overlays real entities on top of the mock store (live wins on entity-id collision; mock fills gaps). Service calls proxy to the live `hass.callService()` for live entities. Mock store remains for dev and demo-only tiles. **Modal portal**: all modals (`TileModal`, `Palette`, `SampleBrowser`, `AlarmsConfig`) render via `createPortal` into a sibling `<div id="realm-modal-root">` at shadow-root level so RGL's grid-item transforms can't trap them. **RGL `preventCollision: true`** on the noCompactor so dragging onto an occupied cell snaps back instead of cascading other tiles down. **Duplicate-tile button** moved to a right-side action cluster next to delete (was floating awkwardly between drag handle and X). **Entity picker font** enlarged + switched to sans-serif. **Detail modals** added on Network/Alarm/Heatmap/SpeedTest/NAS. |
 | **10** | **EntityDetailModal wired** on Tank/Gauge/Donut/Bar/Value/Sparkline/HistoryBars (click outside edit mode → modal with 60-pt history plot + attributes table). **Custom detail modals** for WeatherTile (extended forecast + full conditions) and CameraTile (full-image viewport + metadata). **Sample dashboard library** (Welcome, Smart Home Starter, Homestead Ops, Showcase) browsable via TEMPLATES button in edit banner; each loads as a new tab. **First-run Welcome** layout — pure HeaderTiles, zero entity dependencies, so a fresh install looks intentional. **Inline tab rename** replaces `window.prompt`. **EntityPicker** inside AlarmsConfig replaces `window.prompt`. **Keyboard shortcuts**: `E` toggle edit, `/` open palette (autofocuses search), `Esc` deselect. LAYOUT_VERSION 5 (v4 migrates forward cleanly). |
 | **9** | Multi-tab system (per-tab layout + alarm config), alarm chips strip, duplicate tile, Inspector + Palette readability pass with text search, Blinds/Curtain position sliders, Thermostat `showX` checkboxes, Laundry `washerExtras`/`dryerExtras`, HeaderTile, switched to `noCompactor` (iOS-style fixed positions, gaps allowed). LAYOUT_VERSION 4. |
@@ -372,7 +373,7 @@ Items addressed this round:
 
 Track decisions we've deferred and known issues.
 
-- **Live history provider:** State and service calls are live, but history charts still use generated demo history. Next step is HA history/statistics integration.
+- **Live history provider:** Basic recent HA history is wired through `history/period`. Next step is statistics/long-term history plus date-range controls.
 - **scada-panel sunset:** When Realm has feature parity, retire `scada-panel`. Remove `panel_custom` entry, delete `/config/www/scada-panel/`, remove `scada_dark.yaml` (or keep as a personal backup).
 - **PlotTile zoom/pan:** Currently no interactive zoom. Worth adding via uPlot once we have real history data.
 - **Edit mode on phone:** Drag works on touch. Inspector is full-screen on <700px. Verify ergonomics on real phone use.
@@ -381,7 +382,7 @@ Track decisions we've deferred and known issues.
 - **Tile-level error boundaries:** A single misconfigured tile shouldn't crash the whole Overview. Wrap each `<EditableTile>` in an error boundary.
 - **Layout schema migration:** v4 → v5 was a no-op rename (round 10) because the shape was identical. Future schema changes should ship a real migration rather than dropping local state.
 - **Theme switching from inside Realm:** Currently the user switches in HA Profile. Could expose a quick toggle from Realm itself.
-- **More tiles need detail modals:** Round 10 wired the obvious visualization tiles + Weather + Camera. Still candidate-for-modal: NetworkTile, NASTile, SpeedTestTile, SankeyTile, HeatmapTile, MultiMetricTile, AlarmTile (event history view), AreaListTile (per-row drill-down). Same pattern as the round 10 wiring.
+- **More tiles need detail modals:** Most single-entity visualization tiles are wired. Still candidate-for-custom-modal: SankeyTile, LaundryTile, ClimateThermostatTile, VehicleTile, HomelabTile, and other composites where a generic attributes table is too thin.
 
 ---
 
