@@ -60,7 +60,12 @@ export const EnergyFlowTile: FC<EnergyFlowTileProps> = ({
   return (
     <BaseTile label={label} icon={icon}>
       <div className="energy-flow-tile">
-        <svg className="energy-flow-tile__svg" viewBox="0 0 300 180" aria-hidden>
+        <svg
+          className="energy-flow-tile__svg"
+          viewBox="0 0 300 180"
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden
+        >
           {/* Flow paths */}
           {grid && (
             <path

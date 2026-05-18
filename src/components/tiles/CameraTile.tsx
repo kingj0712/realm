@@ -14,9 +14,13 @@ interface CameraTileProps {
   // Polling interval in seconds for refreshing the snapshot via cache-bust.
   // Set to 0 to disable polling (still loads once).
   refreshSeconds?: number;
+  // Optional override for the empty-state text. The Showcase layout sets this
+  // to short feed names ("DRIVEWAY FEED" / "GARAGE FEED") so the placeholder
+  // reads as an intentional demo rather than a broken camera.
+  placeholderLabel?: string;
 }
 
-export const CameraTile: FC<CameraTileProps> = ({ entityId, label, icon, snapshotUrl, refreshSeconds = 10 }) => {
+export const CameraTile: FC<CameraTileProps> = ({ entityId, label, icon, snapshotUrl, refreshSeconds = 10, placeholderLabel }) => {
   const entity = useEntity(entityId);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
   const [time, setTime] = useState(() => new Date());
@@ -62,7 +66,11 @@ export const CameraTile: FC<CameraTileProps> = ({ entityId, label, icon, snapsho
             {url ? (
               <img className="camera-tile__img" src={url} alt={friendly} />
             ) : (
-              <div className="camera-tile__placeholder">NO SIGNAL</div>
+              <div className="camera-tile__placeholder camera-tile__placeholder--demo">
+                <div className="camera-tile__placeholder-pattern" aria-hidden />
+                <div className="camera-tile__placeholder-label">{placeholderLabel ?? 'NO SIGNAL'}</div>
+                {placeholderLabel && <div className="camera-tile__placeholder-tag">DEMO</div>}
+              </div>
             )}
             {/* Corner brackets */}
             <span className="camera-tile__corner camera-tile__corner--tl" />

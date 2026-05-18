@@ -168,7 +168,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   {
     type: 'TankTile', name: 'Tank', category: 'Visualization',
     description: 'Vertical tank visual that fills with liquid based on entity %.',
-    defaultColSpan: 3,
+    defaultColSpan: 3, defaultRowSpan: 10,
     defaultProps: { entityId: 'sensor.fuel_oil_level', icon: 'mdiBarrel', capacity: '275 GAL', warnBelow: 25, alarmBelow: 10 },
     schema: {
       entityId: { kind: 'entity', label: 'Entity' },
@@ -183,7 +183,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   {
     type: 'GaugeTile', name: 'Gauge', category: 'Visualization',
     description: '270° arc gauge for continuous values.',
-    defaultColSpan: 3,
+    defaultColSpan: 3, defaultRowSpan: 9,
     defaultProps: { entityId: 'sensor.boiler_pressure', icon: 'mdiGauge', min: 0, max: 30, precision: 1 },
     schema: {
       entityId: { kind: 'entity', label: 'Entity' },
@@ -199,7 +199,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   {
     type: 'DonutTile', name: 'Donut', category: 'Visualization',
     description: 'Full radial percentage with center label.',
-    defaultColSpan: 3,
+    defaultColSpan: 3, defaultRowSpan: 9,
     defaultProps: { entityId: 'sensor.ups_battery', icon: 'mdiBatteryHigh' },
     schema: {
       entityId: { kind: 'entity', label: 'Entity' },
@@ -313,15 +313,20 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   {
     type: 'CameraTile', name: 'Camera', category: 'Info',
     description: 'Camera snapshot with REC overlay and timestamp.',
-    defaultColSpan: 4,
+    defaultColSpan: 4, defaultRowSpan: 11,
     defaultProps: { entityId: 'camera.front_porch', icon: 'mdiCamera' },
     schema: {
       entityId: { kind: 'entity', label: 'Entity', domains: ['camera'] },
       label: { kind: 'string', label: 'Label', optional: true },
       icon: { kind: 'icon', label: 'Icon', optional: true },
       snapshotUrl: { kind: 'string', label: 'Snapshot URL', optional: true },
+      placeholderLabel: { kind: 'string', label: 'Placeholder label (when no image)', optional: true },
     },
-    render: (p) => <CameraTile entityId={p.entityId as string} label={p.label as string | undefined} icon={iconEl(p.icon)} snapshotUrl={p.snapshotUrl as string | undefined} />,
+    render: (p) => <CameraTile
+      entityId={p.entityId as string} label={p.label as string | undefined} icon={iconEl(p.icon)}
+      snapshotUrl={p.snapshotUrl as string | undefined}
+      placeholderLabel={p.placeholderLabel as string | undefined}
+    />,
   },
   {
     type: 'MediaPlayerTile', name: 'Media Player', category: 'Control',
@@ -650,7 +655,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   {
     type: 'ClimateThermostatTile', name: 'Thermostat (full)', category: 'Control',
     description: 'Full thermostat — mode/fan/preset buttons, current+target, humidity. Toggle which sections to show.',
-    defaultColSpan: 4,
+    defaultColSpan: 4, defaultRowSpan: 13,
     defaultProps: {
       entityId: 'climate.thermostat_main', icon: 'mdiHomeThermometer',
       showModeButtons: true, showFanButtons: true, showPresetButtons: true,
@@ -680,7 +685,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   {
     type: 'AirPurifierTile', name: 'Air Purifier', category: 'Control',
     description: 'PM1/2.5/10 readings, filter life, fan + preset selector.',
-    defaultColSpan: 4,
+    defaultColSpan: 4, defaultRowSpan: 11,
     defaultProps: { label: 'AIR PURIFIER', icon: 'mdiFan', fanEntityId: 'fan.living_room_purifier', pm1EntityId: 'sensor.air_pm1', pm25EntityId: 'sensor.air_pm25', pm10EntityId: 'sensor.air_pm10', filterLifeEntityId: 'sensor.air_filter_life' },
     schema: {
       label: { kind: 'string', label: 'Label' },
@@ -770,7 +775,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   {
     type: 'VehicleTile', name: 'Vehicle', category: 'Control',
     description: 'Battery + range + lock/start/climate buttons.',
-    defaultColSpan: 4,
+    defaultColSpan: 4, defaultRowSpan: 10,
     defaultProps: { entityId: 'sensor.tesla_model3', icon: 'mdiHome', lockEntityId: 'lock.tesla_model3_lock', climateEntityId: 'climate.tesla_model3_climate' },
     schema: {
       entityId: { kind: 'entity', label: 'Vehicle status entity' },
@@ -785,7 +790,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
   {
     type: 'LaundryTile', name: 'Laundry', category: 'Info',
     description: 'Washer + dryer side-by-side with spinning-drum animation when active. Add optional extra entity rows per appliance.',
-    defaultColSpan: 6,
+    defaultColSpan: 6, defaultRowSpan: 11,
     defaultProps: {
       label: 'LAUNDRY', icon: 'mdiWrench',
       washerEntityId: 'sensor.washing_machine', dryerEntityId: 'sensor.dryer',
@@ -917,8 +922,13 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
       icon: { kind: 'icon', label: 'Icon', optional: true },
       url: { kind: 'string', label: 'URL', hint: 'http://homestead-hq.local:3000/api/digest/weekly' },
       refreshMinutes: { kind: 'number', label: 'Refresh (min)', optional: true },
+      demo: { kind: 'boolean', label: 'Demo mode (skip fetch, show sample)', optional: true },
     },
-    render: (p) => <WeeklyDigestTile label={p.label as string | undefined} icon={iconEl(p.icon)} url={p.url as string} refreshMinutes={p.refreshMinutes as number | undefined} />,
+    render: (p) => <WeeklyDigestTile
+      label={p.label as string | undefined} icon={iconEl(p.icon)}
+      url={p.url as string} refreshMinutes={p.refreshMinutes as number | undefined}
+      demo={p.demo as boolean | undefined}
+    />,
   },
   {
     type: 'HeaderTile', name: 'Section Header', category: 'Misc',

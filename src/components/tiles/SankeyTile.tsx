@@ -25,7 +25,7 @@ export const SankeyTile: FC<SankeyTileProps> = ({ label = 'POWER FLOW', icon, so
     <>
       <BaseTile label={label} icon={icon} onClick={() => setOpen(true)}>
         <div className="sankey-tile">
-          <svg className="sankey-tile__svg" viewBox="0 0 300 160" aria-hidden>
+          <svg className="sankey-tile__svg" viewBox="0 0 300 160" preserveAspectRatio="xMidYMid meet" aria-hidden>
             <SankeyContent sources={sources} consumers={consumers} />
           </svg>
         </div>

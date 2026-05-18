@@ -164,22 +164,32 @@ export function homesteadOpsLayout(): LayoutItem[] {
 // much to leave to row-wrapping. Heights cluster per section so tiles align
 // horizontally inside each band.
 export function showcaseLayout(): LayoutItem[] {
+  // Heights follow these rough bands so tiles align inside each section and
+  // nothing clips at the bottom:
+  //   Header                 h=2
+  //   Compact value/status   h=5-6
+  //   Standard data          h=7-8
+  //   Rich visual            h=9-11
+  //   Camera / large chart   h=10-12
+  // See WIKI.md section 11.5 for the full sizing rules.
   const tiles = (): TileSpec[] => [
     // ===== Section 1: Environment =====
     H('ENVIRONMENT', 'info', 0, 0),
-    T('WeatherTile', 0, 2, 6, 9),
-    T('PresenceListTile', 6, 2, 3, 9, { label: 'PRESENCE', icon: 'mdiAccountGroup', personIds: ['person.user_1', 'person.user_2', 'person.guest'] }),
-    T('NotificationFeedTile', 9, 2, 3, 9),
-    // Sub-row of compact environment readings — consistent h=5 keeps the band tight.
-    T('SunMoonTile', 0, 11, 3, 7),
-    T('WindCompassTile', 3, 11, 3, 7),
-    T('ValueTile', 6, 11, 3, 5, { entityId: 'sensor.outdoor_temperature', precision: 0, icon: 'mdiThermometer', label: 'OUTDOOR TEMP' }),
-    T('ValueTile', 9, 11, 3, 5, { entityId: 'sensor.outdoor_humidity', precision: 0, icon: 'mdiWaterPercent', label: 'HUMIDITY' }),
-    T('ClockTile', 6, 16, 6, 2),
+    // Hero row. WeatherTile h=11 fits hero + 3-day forecast cleanly.
+    T('WeatherTile', 0, 2, 6, 11),
+    T('PresenceListTile', 6, 2, 3, 11, { label: 'PRESENCE', icon: 'mdiAccountGroup', personIds: ['person.user_1', 'person.user_2', 'person.guest'] }),
+    T('NotificationFeedTile', 9, 2, 3, 11),
+    // Compact environment sub-row. Aligned bottom edge at y=22 across all
+    // tiles: SunMoon/Wind take h=9; right side stacks Value h=5 + Clock h=4.
+    T('SunMoonTile', 0, 13, 3, 9),
+    T('WindCompassTile', 3, 13, 3, 9),
+    T('ValueTile', 6, 13, 3, 5, { entityId: 'sensor.outdoor_temperature', precision: 0, icon: 'mdiThermometer', label: 'OUTDOOR TEMP' }),
+    T('ValueTile', 9, 13, 3, 5, { entityId: 'sensor.outdoor_humidity', precision: 0, icon: 'mdiWaterPercent', label: 'HUMIDITY' }),
+    T('ClockTile', 6, 18, 6, 4),
 
     // ===== Section 2: House Status =====
-    H('HOUSE STATUS', 'warn', 0, 18),
-    T('StatusListTile', 0, 20, 4, 7, {
+    H('HOUSE STATUS', 'warn', 0, 22),
+    T('StatusListTile', 0, 24, 4, 8, {
       label: 'ENTRY POINTS', icon: 'mdiDoor',
       entries: [
         { entityId: 'binary_sensor.front_door',  label: 'FRONT',  stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
@@ -188,56 +198,62 @@ export function showcaseLayout(): LayoutItem[] {
         { entityId: 'binary_sensor.garage_door', label: 'GARAGE', stateLabels: { on: 'OPEN', off: 'CLOSED' }, activeStatus: 'warn' },
       ],
     }),
-    T('AlarmTile', 4, 20, 2, 7, { entityId: 'binary_sensor.water_leak_basement', icon: 'mdiWaterAlert', label: 'WATER LEAK' }),
-    T('AlarmTile', 6, 20, 2, 7, { entityId: 'binary_sensor.sump_high_water', icon: 'mdiWaterAlert', label: 'SUMP HIGH' }),
-    T('MailboxTile', 8, 20, 2, 7),
-    T('TrashScheduleTile', 10, 20, 2, 7),
+    T('AlarmTile', 4, 24, 2, 8, { entityId: 'binary_sensor.water_leak_basement', icon: 'mdiWaterAlert', label: 'WATER LEAK' }),
+    T('AlarmTile', 6, 24, 2, 8, { entityId: 'binary_sensor.sump_high_water', icon: 'mdiWaterAlert', label: 'SUMP HIGH' }),
+    T('MailboxTile', 8, 24, 2, 8),
+    T('TrashScheduleTile', 10, 24, 2, 8),
 
     // ===== Section 3: Energy =====
-    H('ENERGY', 'ok', 0, 27),
-    T('EnergyFlowTile', 0, 29, 6, 10),
-    T('SankeyTile', 6, 29, 6, 10),
-    T('TankTile', 0, 39, 3, 9),
-    T('TankTile', 3, 39, 3, 9, { entityId: 'sensor.propane_level', icon: 'mdiBarrel', capacity: '500 GAL' }),
-    T('GaugeTile', 6, 39, 3, 9),
-    T('DonutTile', 9, 39, 3, 9),
+    H('ENERGY', 'ok', 0, 32),
+    // EnergyFlow/Sankey rendered with preserveAspectRatio so they scale down
+    // gracefully at h=12 without overflowing.
+    T('EnergyFlowTile', 0, 34, 6, 12),
+    T('SankeyTile', 6, 34, 6, 12),
+    T('TankTile', 0, 46, 3, 10),
+    T('TankTile', 3, 46, 3, 10, { entityId: 'sensor.propane_level', icon: 'mdiBarrel', capacity: '500 GAL' }),
+    T('GaugeTile', 6, 46, 3, 10),
+    T('DonutTile', 9, 46, 3, 10),
 
     // ===== Section 4: Comfort =====
-    H('COMFORT', 'info', 0, 48),
-    T('ClimateThermostatTile', 0, 50, 4, 10),
-    T('AirPurifierTile', 4, 50, 4, 10),
-    T('LightFanTile', 8, 50, 4, 10),
+    H('COMFORT', 'info', 0, 56),
+    T('ClimateThermostatTile', 0, 58, 4, 13),
+    T('AirPurifierTile', 4, 58, 4, 13),
+    T('LightFanTile', 8, 58, 4, 13),
 
     // ===== Section 5: Security =====
-    H('SECURITY', 'warn', 0, 60),
-    T('CameraTile', 0, 62, 4, 9, { entityId: 'camera.front_porch', icon: 'mdiCamera' }),
-    T('CameraTile', 4, 62, 4, 9, { entityId: 'camera.backyard', icon: 'mdiCamera' }),
-    T('ButtonTile', 8, 62, 2, 9, {
+    H('SECURITY', 'warn', 0, 71),
+    // placeholderLabel makes the demo cameras read as intentional feed tiles
+    // rather than broken NO-SIGNAL boxes when no real entity_picture is set.
+    T('CameraTile', 0, 73, 4, 11, { entityId: 'camera.front_porch', icon: 'mdiCamera', placeholderLabel: 'DRIVEWAY FEED' }),
+    T('CameraTile', 4, 73, 4, 11, { entityId: 'camera.backyard', icon: 'mdiCamera', placeholderLabel: 'BACKYARD FEED' }),
+    T('ButtonTile', 8, 73, 2, 11, {
       entityId: 'cover.garage_door', icon: 'mdiGarage', buttonText: 'OPERATE',
       states: { open: { pill: 'OPEN', status: 'warn', buttonText: 'CLOSE' }, closed: { pill: 'CLOSED', status: 'ok', buttonText: 'OPEN' } },
       confirmBeforeAction: true,
       confirmMessage: 'Operate the garage door?',
     }),
-    T('BlindsTile', 10, 62, 2, 9),
+    T('BlindsTile', 10, 73, 2, 11),
 
     // ===== Section 6: Systems =====
-    H('SYSTEMS', 'info', 0, 71),
-    T('NetworkTile', 0, 73, 3, 5),
-    T('SpeedTestTile', 3, 73, 3, 5),
-    T('NASTile', 6, 73, 3, 5),
-    T('HomelabTile', 9, 73, 3, 5),
+    H('SYSTEMS', 'info', 0, 84),
+    T('NetworkTile', 0, 86, 3, 6),
+    T('SpeedTestTile', 3, 86, 3, 6),
+    T('NASTile', 6, 86, 3, 6),
+    T('HomelabTile', 9, 86, 3, 6),
 
     // ===== Section 7: Household =====
-    H('HOUSEHOLD', 'ok', 0, 78),
-    T('LaundryTile', 0, 80, 4, 9),
-    T('VehicleTile', 4, 80, 4, 9),
-    T('CalendarTile', 8, 80, 4, 9),
+    H('HOUSEHOLD', 'ok', 0, 92),
+    T('LaundryTile', 0, 94, 4, 11),
+    T('VehicleTile', 4, 94, 4, 11),
+    T('CalendarTile', 8, 94, 4, 11),
 
     // ===== Section 8: Homestead =====
-    H('HOMESTEAD', 'info', 0, 89),
-    T('WeeklyDigestTile', 0, 91, 4, 10),
-    T('BeehiveTile', 4, 91, 4, 10),
-    T('GeneratorTile', 8, 91, 4, 10),
+    H('HOMESTEAD', 'info', 0, 105),
+    // demo: true on the digest means we skip the fetch entirely and render
+    // a styled SAMPLE digest. No console noise about CORS failures.
+    T('WeeklyDigestTile', 0, 107, 4, 11, { demo: true }),
+    T('BeehiveTile', 4, 107, 4, 11),
+    T('GeneratorTile', 8, 107, 4, 11),
   ];
 
   return tiles().map((spec) => buildItem(spec));

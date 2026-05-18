@@ -326,7 +326,8 @@ Most recent first. Sections 9.1–9.5 below have round-specific detail.
 
 | Round | Headline shipped |
 |-------|------------------|
-| **14.1** (current) | **Showcase tab redesign**: replaced the "tile dump" Demo tab with a curated, sectioned Showcase. Eight named sections (Environment, House Status, Energy, Comfort, Security, Systems, Household, Homestead), ~25 tiles total, explicit x/y/w/h so heights cluster per section and there are no blank vertical gaps. Renamed the default tab from "Demo" to "Showcase" (fresh installs only — existing users keep their tab name). `sampleLayouts.ts` now has a top-of-file comment laying out the three distinct roles: Welcome (first-run instructions), Showcase (curated dashboard), `/components` page (exhaustive catalog). |
+| **14.2** (current) | **Showcase clipping fixes**: `.tile__body` now allows flex/SVG children to shrink (`min-height:0; overflow:hidden`). ClockTile time text scales via `clamp()` + container queries instead of overflowing at small h. EnergyFlowTile + SankeyTile SVGs use `preserveAspectRatio="xMidYMid meet"` and fill 100% of available height. Tank/Gauge/Donut SVGs become `height:100%` with max-size caps. Showcase layout heights bumped per the sizing band rules (WeatherTile 9→11, EnergyFlow/Sankey 10→12, Climate 10→13, Camera 9→11, etc.). CameraTile gains a `placeholderLabel` prop that renders a designed test-pattern with a DEMO badge instead of NO SIGNAL. WeeklyDigestTile gains a `demo: true` prop that renders a styled SAMPLE digest without fetching (no console noise). Registry defaults updated for Tank/Gauge/Donut/Camera/Climate/AirPurifier/Vehicle/Laundry so new instances aren't created too short. Sizing rules documented in WIKI section 10.7. |
+| **14.1** | **Showcase tab redesign**: replaced the "tile dump" Demo tab with a curated, sectioned Showcase. Eight named sections (Environment, House Status, Energy, Comfort, Security, Systems, Household, Homestead), ~25 tiles total, explicit x/y/w/h so heights cluster per section and there are no blank vertical gaps. Renamed the default tab from "Demo" to "Showcase" (fresh installs only — existing users keep their tab name). `sampleLayouts.ts` now has a top-of-file comment laying out the three distinct roles: Welcome (first-run instructions), Showcase (curated dashboard), `/components` page (exhaustive catalog). |
 | **14** | **Fork-and-customize pivot**: edit-mode **REMAP** modal scans active-tab tile props for demo entity IDs and bulk-swaps to user-picked LIVE entities (`src/edit/RemapEntitiesModal.tsx` + `entityRemap.ts`). **BUILD FROM HA** offers a preview-before-add starter tab from live entities by domain. **SNAPSHOTS** modal manages named localStorage rollbacks alongside file EXPORT/IMPORT. **Service-call toasts** centralize feedback through a `HassStore.subscribeServiceEvents` emitter and a shadow-root `ToastHost`. **Per-tile error boundaries** prevent one bad tile from blanking the dashboard. **Standardized missing-entity states** (`UNMAPPED` vs `UNAVAILABLE` vs `NO ENTITY`). **Per-breakpoint layout types** + migration (UI for editing per breakpoint still pending). **Confirm before action** for ButtonTile + VehicleTile remote start, via a SCADA-styled `ConfirmModal`. **EntityPicker** gains domain + LIVE/DEMO chips. **Composite tile modals** for ClimateThermostat, Laundry, Vehicle, Sankey, Homelab. **Deep-dive routes** `/entity/:entityId` and `/room/:roomId` scaffolded. |
 | **13.1** | **Modal regression fix**: hardened the modal portal by creating the shadow-root modal layer directly in `main.tsx`, and fixed `useHistory()` so async live-history loading does not churn modal renders. |
 | **13** | **Live history + layout snapshots**: `HassStore` now supports async live history separately from generated demo history. `main.tsx` installs a live history provider using HA's `history/period` API when `hass.callApi` exists. Detail charts for live numeric entities can show real recent history. Edit mode now has EXPORT / IMPORT JSON buttons for full dashboard snapshots, with import validation and version normalization. |
@@ -418,6 +419,34 @@ Adding density/theme support is a tokens-layer change first, components-layer ch
 - Reduced motion: respect `prefers-reduced-motion` first; layer a manual toggle on top.
 
 Default stays dense SCADA. Large mode is for tablet/wall-panel deployments. Reduced motion should quiet animations without removing state cues (alarm pulses, charging dot, drum spin).
+
+## 10.7 Tile sizing rules (round 14.2)
+
+Tiles render inside their row-spans (20px each + 8px margin). Each tile has a minimum useful height; going below it produces clipped content even with `overflow: hidden` on the body. The Showcase layout follows these bands so nothing clips out of the box:
+
+| Tile kind | Recommended h | Notes |
+|-----------|---------------|-------|
+| HeaderTile | 2 | One-line section divider. |
+| ClockTile | 4-8 | Time text scales via `clamp()` + container queries. Won't clip at h=4. |
+| ValueTile / StatusTile / Toggle / Button / Network | 5-6 | Single value or pill. h=4 is the registry default and is fine for compact tiles. |
+| MailboxTile / TrashScheduleTile / SunMoonTile / WindCompassTile | 7-9 | Multi-row info with icons. |
+| StatusListTile / AlarmTile (with subtitle) | 7-9 | Depends on row count. |
+| WeatherTile | 11-13 | Hero numbers + 3-day forecast row. |
+| TankTile / GaugeTile / DonutTile | 9-10 | SVGs scale to fit; below 8 the readout gets cramped. |
+| SankeyTile / EnergyFlowTile | 10-13 | SVGs use `preserveAspectRatio="xMidYMid meet"` so they shrink uniformly. |
+| ClimateThermostatTile | 12-14 | Hero current + target + mode/fan/preset rows. |
+| LaundryTile / VehicleTile | 10-12 | Two appliance cells / battery + controls. |
+| CameraTile | 10-12 | 16:9 viewport + REC overlay. `placeholderLabel` prop produces a polished demo placeholder. |
+| WeeklyDigestTile | 10-13 | `demo: true` shows a styled SAMPLE digest without fetching. |
+| PlotTile / HistoryBarsTile / HeatmapTile | 9-13 | ECharts/SVG charts need room for axes. |
+
+**Anti-clipping primitives** baked into `components.css`:
+
+- `.tile__body` has `min-height: 0; overflow: hidden;` so SVG/flex children can shrink.
+- Tiles that wrap an SVG (energy, sankey, tank, gauge, donut) flex to fill the body and the SVG uses `width: 100%; height: 100%;` with explicit `preserveAspectRatio`.
+- ClockTile body is `container-type: size` and the time/date use `clamp(min, Ncqh, max)` so the font scales with the tile.
+
+Showcase respects each tile's minimum useful size; the `/components` page remains the exhaustive catalog where every tile renders at its registry default.
 
 ## 11. Conventions
 
