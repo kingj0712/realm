@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
+import { createMockStore, type HassStore } from './hass';
+import type { HassEntity } from './types';
 import tokensCss from './styles/tokens.css?inline';
 import componentsCss from './styles/components.css?inline';
 // react-grid-layout ships its own stylesheets — pull them as ?inline so they
@@ -27,13 +29,58 @@ function ensureFonts(): void {
   document.head.appendChild(link);
 }
 
+// Minimal shape of HA's `hass` object — only the fields Realm consumes. HA
+// actually passes a much richer object (connection, language, themes…) but
+// we only need states + callService for now.
+interface HassLike {
+  states?: Record<string, HassEntity>;
+  callService?: (
+    domain: string,
+    service: string,
+    data?: object,
+    target?: object,
+  ) => Promise<unknown> | void;
+}
+
 // Custom element HA mounts when the user opens the Realm panel.
-// HA assigns hass/narrow/route/panel as properties on the element. Phase 2
-// ignores them (App uses a mock store via context). Phase 6+ will reintroduce
-// property setters that bridge HA state into a real HassStore.
+// HA assigns hass/narrow/route/panel as properties on the element. When `hass`
+// is set we sync its states into our store (live wins over mock for collisions)
+// and install a service handler that proxies to the real connection.
 class RealmPanel extends HTMLElement {
   private root: Root | null = null;
   private mountNode: HTMLElement | null = null;
+  // Mock store provides the demo baseline. syncFromLive overlays real HA
+  // entities on top whenever HA pushes a `hass` property update.
+  private store: HassStore = createMockStore();
+  private _hass: HassLike | null = null;
+  private liveHandlerInstalled = false;
+
+  set hass(value: HassLike | null | undefined) {
+    this._hass = value ?? null;
+    if (!value) return;
+    if (value.states) {
+      this.store.syncFromLive(value.states);
+    }
+    if (!this.liveHandlerInstalled && typeof value.callService === 'function') {
+      // Replace the mock service handler with one that proxies to live HA.
+      // We read `this._hass` at call time (not the captured `value`) so it
+      // always uses the freshest callService reference.
+      this.store.setServiceHandler(async (domain, service, data, target) => {
+        const hass = this._hass;
+        if (!hass?.callService) return;
+        try {
+          await hass.callService(domain, service, data, target as object);
+        } catch (e) {
+          // Service errors shouldn't crash the dashboard.
+          console.warn('[realm] callService failed:', e);
+        }
+      });
+      this.liveHandlerInstalled = true;
+    }
+  }
+  get hass(): HassLike | null {
+    return this._hass;
+  }
 
   connectedCallback() {
     if (this.shadowRoot) return;
@@ -53,7 +100,7 @@ class RealmPanel extends HTMLElement {
     this.root = createRoot(this.mountNode);
     this.root.render(
       <StrictMode>
-        <App />
+        <App store={this.store} />
       </StrictMode>,
     );
   }

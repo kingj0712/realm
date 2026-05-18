@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface NASTileProps {
   entityId: string;
@@ -12,6 +13,7 @@ const CIRC = 2 * Math.PI * 30;
 
 export const NASTile: FC<NASTileProps> = ({ entityId, label, icon }) => {
   const entity = useEntity(entityId);
+  const [open, setOpen] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
   if (!entity) return <BaseTile label={friendly} status="stale" icon={icon} pill="unavail"><div>n/a</div></BaseTile>;
 
@@ -24,21 +26,32 @@ export const NASTile: FC<NASTileProps> = ({ entityId, label, icon }) => {
   const write = entity.attributes.write_mbps as number | undefined;
   const users = entity.attributes.connected_users as number | undefined;
   const dashOffset = CIRC * (1 - safe / 100);
+  const pill = totalTb != null ? `${usedTb?.toFixed(1)}/${totalTb} TB` : `${safe.toFixed(0)}%`;
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon} pill={totalTb != null ? `${usedTb?.toFixed(1)}/${totalTb} TB` : `${safe.toFixed(0)}%`}>
-      <div className="nas-tile">
-        <svg className="nas-tile__svg" viewBox="0 0 80 80" aria-hidden>
-          <circle cx="40" cy="40" r="30" className="nas-tile__bg" />
-          <circle cx="40" cy="40" r="30" className={`nas-tile__fg nas-tile__fg--${status}`} transform="rotate(-90 40 40)" style={{ strokeDasharray: CIRC, strokeDashoffset: dashOffset }} />
-          <text x="40" y="44" textAnchor="middle" className="nas-tile__pct">{safe.toFixed(0)}%</text>
-        </svg>
-        <div className="nas-tile__meta">
-          <div className="nas-tile__metric"><span className="nas-tile__metric-label">READ</span><span className="nas-tile__metric-val">{read?.toFixed(1) ?? '--'} MB/s</span></div>
-          <div className="nas-tile__metric"><span className="nas-tile__metric-label">WRITE</span><span className="nas-tile__metric-val">{write?.toFixed(1) ?? '--'} MB/s</span></div>
-          {users != null && <div className="nas-tile__metric"><span className="nas-tile__metric-label">USERS</span><span className="nas-tile__metric-val">{users}</span></div>}
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} pill={pill} onClick={() => setOpen(true)}>
+        <div className="nas-tile">
+          <svg className="nas-tile__svg" viewBox="0 0 80 80" aria-hidden>
+            <circle cx="40" cy="40" r="30" className="nas-tile__bg" />
+            <circle cx="40" cy="40" r="30" className={`nas-tile__fg nas-tile__fg--${status}`} transform="rotate(-90 40 40)" style={{ strokeDasharray: CIRC, strokeDashoffset: dashOffset }} />
+            <text x="40" y="44" textAnchor="middle" className="nas-tile__pct">{safe.toFixed(0)}%</text>
+          </svg>
+          <div className="nas-tile__meta">
+            <div className="nas-tile__metric"><span className="nas-tile__metric-label">READ</span><span className="nas-tile__metric-val">{read?.toFixed(1) ?? '--'} MB/s</span></div>
+            <div className="nas-tile__metric"><span className="nas-tile__metric-label">WRITE</span><span className="nas-tile__metric-val">{write?.toFixed(1) ?? '--'} MB/s</span></div>
+            {users != null && <div className="nas-tile__metric"><span className="nas-tile__metric-label">USERS</span><span className="nas-tile__metric-val">{users}</span></div>}
+          </div>
         </div>
-      </div>
-    </BaseTile>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={pill}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };

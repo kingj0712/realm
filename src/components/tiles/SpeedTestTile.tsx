@@ -1,6 +1,7 @@
-import type { FC, MouseEvent, ReactNode } from 'react';
+import { useState, type FC, type MouseEvent, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity, useHass } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface SpeedTestTileProps {
   entityId: string;
@@ -26,6 +27,7 @@ function fmtTime(iso: string | undefined): string {
 export const SpeedTestTile: FC<SpeedTestTileProps> = ({ entityId, label, icon, runService }) => {
   const entity = useEntity(entityId);
   const store = useHass();
+  const [open, setOpen] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
   if (!entity) return <BaseTile label={friendly} status="stale" icon={icon} pill="unavail"><div>n/a</div></BaseTile>;
 
@@ -35,6 +37,7 @@ export const SpeedTestTile: FC<SpeedTestTileProps> = ({ entityId, label, icon, r
   const up = entity.attributes.upload as number | undefined;
   const ping = entity.attributes.ping as number | undefined;
   const lastRun = entity.attributes.last_run as string | undefined;
+  const pill = isRunning ? 'TESTING…' : fmtTime(lastRun);
 
   const runTest = (e: MouseEvent) => {
     e.stopPropagation();
@@ -44,24 +47,34 @@ export const SpeedTestTile: FC<SpeedTestTileProps> = ({ entityId, label, icon, r
   };
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon} pill={isRunning ? 'TESTING…' : fmtTime(lastRun)}>
-      <div className="speedtest-tile">
-        <div className="speedtest-tile__row speedtest-tile__row--down">
-          <span className="speedtest-tile__arrow">↓</span>
-          <span className="speedtest-tile__num">{down?.toFixed(0) ?? '--'}</span>
-          <span className="speedtest-tile__unit">Mbps</span>
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} pill={pill} onClick={() => setOpen(true)}>
+        <div className="speedtest-tile">
+          <div className="speedtest-tile__row speedtest-tile__row--down">
+            <span className="speedtest-tile__arrow">↓</span>
+            <span className="speedtest-tile__num">{down?.toFixed(0) ?? '--'}</span>
+            <span className="speedtest-tile__unit">Mbps</span>
+          </div>
+          <div className="speedtest-tile__row speedtest-tile__row--up">
+            <span className="speedtest-tile__arrow">↑</span>
+            <span className="speedtest-tile__num">{up?.toFixed(1) ?? '--'}</span>
+            <span className="speedtest-tile__unit">Mbps</span>
+          </div>
+          <div className="speedtest-tile__ping">
+            <span className="speedtest-tile__ping-label">PING</span>
+            <span className="speedtest-tile__ping-val">{ping ?? '--'} ms</span>
+            <button type="button" className="speedtest-tile__run" onClick={runTest}>RUN TEST</button>
+          </div>
         </div>
-        <div className="speedtest-tile__row speedtest-tile__row--up">
-          <span className="speedtest-tile__arrow">↑</span>
-          <span className="speedtest-tile__num">{up?.toFixed(1) ?? '--'}</span>
-          <span className="speedtest-tile__unit">Mbps</span>
-        </div>
-        <div className="speedtest-tile__ping">
-          <span className="speedtest-tile__ping-label">PING</span>
-          <span className="speedtest-tile__ping-val">{ping ?? '--'} ms</span>
-          <button type="button" className="speedtest-tile__run" onClick={runTest}>RUN TEST</button>
-        </div>
-      </div>
-    </BaseTile>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={pill}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };

@@ -6,6 +6,11 @@ import {
   noCompactor,
   type Layout,
 } from 'react-grid-layout';
+
+// noCompactor leaves positions free-form (iOS-style fixed slots); adding
+// preventCollision: true means dragging onto an occupied cell snaps back
+// instead of cascading other tiles down the page.
+const fixedSlotCompactor = { ...noCompactor, preventCollision: true };
 import {
   useLayout, Inspector, Palette, EditModeBanner, TabBar, AlarmChips, AlarmsConfig,
   SampleBrowser, TILE_BY_TYPE,
@@ -106,7 +111,7 @@ export const Overview: FC = () => {
             rowHeight={20}
             margin={[8, 8]}
             containerPadding={[0, 0]}
-            compactor={noCompactor}
+            compactor={fixedSlotCompactor}
             dragConfig={{ enabled: isEditing, handle: '.editable-tile__handle', threshold: 3 }}
             resizeConfig={{ enabled: isEditing, handles: ['se'] }}
             onLayoutChange={handleLayoutChange}
@@ -124,28 +129,32 @@ export const Overview: FC = () => {
                   {meta ? meta.render(item.props) : <div className="editable-tile--missing">Unknown: {item.type}</div>}
                   {isEditing && (
                     <div className="editable-tile__overlay" onClick={(e) => { e.stopPropagation(); selectTile(item.id); }}>
-                      <div className="editable-tile__handle" aria-label="drag" onClick={(e) => e.stopPropagation()} title="Drag to move">
-                        ⋮⋮
+                      <div className="editable-tile__overlay-top">
+                        <div className="editable-tile__handle" aria-label="drag" onClick={(e) => e.stopPropagation()} title="Drag to move">
+                          ⋮⋮
+                        </div>
+                        <div className="editable-tile__actions" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="editable-tile__action"
+                            onClick={(e) => { e.stopPropagation(); duplicateTile(item.id); }}
+                            aria-label="duplicate"
+                            title="Duplicate tile"
+                          >
+                            ⎘
+                          </button>
+                          <button
+                            type="button"
+                            className="editable-tile__delete"
+                            onClick={(e) => { e.stopPropagation(); removeTile(item.id); }}
+                            aria-label="delete"
+                            title="Delete tile"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
                       {meta && <div className="editable-tile__type">{meta.name}</div>}
-                      <button
-                        type="button"
-                        className="editable-tile__action"
-                        onClick={(e) => { e.stopPropagation(); duplicateTile(item.id); }}
-                        aria-label="duplicate"
-                        title="Duplicate tile"
-                      >
-                        ⎘
-                      </button>
-                      <button
-                        type="button"
-                        className="editable-tile__delete"
-                        onClick={(e) => { e.stopPropagation(); removeTile(item.id); }}
-                        aria-label="delete"
-                        title="Delete tile"
-                      >
-                        ✕
-                      </button>
                     </div>
                   )}
                 </div>

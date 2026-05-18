@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity } from '../../hass';
+import { EntityDetailModal } from '../EntityDetailModal';
 
 interface AlarmTileProps {
   entityId: string;
@@ -12,6 +13,7 @@ interface AlarmTileProps {
 
 export const AlarmTile: FC<AlarmTileProps> = ({ entityId, label, icon, alarmWhen = 'on' }) => {
   const entity = useEntity(entityId);
+  const [open, setOpen] = useState(false);
   const friendly =
     label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
@@ -25,13 +27,24 @@ export const AlarmTile: FC<AlarmTileProps> = ({ entityId, label, icon, alarmWhen
 
   const isAlarm = entity.state === alarmWhen;
   const status: TileStatus = isAlarm ? 'alarm' : 'ok';
+  const pill = isAlarm ? 'ACTIVE' : 'CLEAR';
 
   return (
-    <BaseTile label={friendly} status={status} icon={icon} pill={isAlarm ? 'active' : 'clear'}>
-      <div className={`alarm-tile__state alarm-tile__state--${status}`}>
-        {isAlarm && <span className="alarm-tile__pulse" aria-hidden />}
-        {isAlarm ? 'ALARM' : 'CLEAR'}
-      </div>
-    </BaseTile>
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} pill={pill} onClick={() => setOpen(true)}>
+        <div className={`alarm-tile__state alarm-tile__state--${status}`}>
+          {isAlarm && <span className="alarm-tile__pulse" aria-hidden />}
+          {isAlarm ? 'ALARM' : 'CLEAR'}
+        </div>
+      </BaseTile>
+      {open && (
+        <EntityDetailModal
+          entityId={entityId}
+          title={friendly}
+          pill={pill}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };

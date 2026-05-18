@@ -86,4 +86,34 @@ export class HassStore {
   getHistory(entityId: string, points: number = 24): number[] {
     return this.historyProvider?.(entityId, points) ?? [];
   }
+
+  // Bulk update from a real HA `hass.states` snapshot. Live is authoritative,
+  // so attributes are replaced (not merged). Entities the live snapshot
+  // doesn't include are left untouched — so the mock pool fills gaps. Only
+  // listeners whose entity actually changed get notified, so unchanged tiles
+  // don't re-render.
+  syncFromLive(liveStates: Record<string, HassEntity>): void {
+    for (const id of Object.keys(liveStates)) {
+      const live = liveStates[id];
+      if (!live || !live.state) continue;
+      const prev = this.states[id];
+      if (
+        prev
+        && prev.state === live.state
+        && JSON.stringify(prev.attributes) === JSON.stringify(live.attributes)
+      ) {
+        continue;
+      }
+      const now = new Date().toISOString();
+      this.states[id] = {
+        entity_id: id,
+        state: live.state,
+        attributes: live.attributes ?? {},
+        last_changed: live.last_changed ?? prev?.last_changed ?? now,
+        last_updated: live.last_updated ?? now,
+        context: live.context ?? prev?.context ?? { id: uid(), user_id: null, parent_id: null },
+      };
+      this.listeners.get(id)?.forEach((l) => l(this.states[id]));
+    }
+  }
 }
