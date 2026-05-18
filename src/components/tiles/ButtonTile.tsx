@@ -1,6 +1,7 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
 import { useEntity, useHass } from '../../hass';
+import { ConfirmModal } from '../ConfirmModal';
 
 interface StateConfig {
   pill?: string;
@@ -17,6 +18,10 @@ interface ButtonTileProps {
   service?: { domain: string; service: string; data?: Record<string, unknown> };
   // Per-state overrides for pill text, status accent, and button label.
   states?: Record<string, StateConfig>;
+  // When true, show a confirmation modal before firing the service. Good for
+  // garage doors, locks, or anything where an accidental tap is consequential.
+  confirmBeforeAction?: boolean;
+  confirmMessage?: string;
 }
 
 export const ButtonTile: FC<ButtonTileProps> = ({
@@ -26,9 +31,12 @@ export const ButtonTile: FC<ButtonTileProps> = ({
   buttonText = 'TOGGLE',
   service,
   states,
+  confirmBeforeAction,
+  confirmMessage,
 }) => {
   const entity = useEntity(entityId);
   const store = useHass();
+  const [pendingConfirm, setPendingConfirm] = useState(false);
   const friendly = label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
   if (!entity) {
@@ -47,17 +55,37 @@ export const ButtonTile: FC<ButtonTileProps> = ({
   const btnText = cfg?.buttonText ?? buttonText;
   const domain = entityId.split('.')[0];
 
-  const onAction = () => {
+  const runAction = () => {
     const dom = service?.domain ?? domain;
     const svc = service?.service ?? 'toggle';
     store.callService(dom, svc, service?.data, { entity_id: entityId });
   };
 
+  const onAction = () => {
+    if (confirmBeforeAction) {
+      setPendingConfirm(true);
+      return;
+    }
+    runAction();
+  };
+
   return (
-    <BaseTile label={friendly} status={status} icon={icon} pill={pill}>
-      <button type="button" className="button-tile__btn" onClick={onAction}>
-        {btnText}
-      </button>
-    </BaseTile>
+    <>
+      <BaseTile label={friendly} status={status} icon={icon} pill={pill}>
+        <button type="button" className="button-tile__btn" onClick={onAction}>
+          {btnText}
+        </button>
+      </BaseTile>
+      {pendingConfirm && (
+        <ConfirmModal
+          title={btnText}
+          message={confirmMessage || `${btnText} ${friendly}?`}
+          confirmText={btnText}
+          tone="caution"
+          onCancel={() => setPendingConfirm(false)}
+          onConfirm={() => { setPendingConfirm(false); runAction(); }}
+        />
+      )}
+    </>
   );
 };

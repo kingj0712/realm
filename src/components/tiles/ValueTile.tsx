@@ -1,6 +1,6 @@
 import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
-import { useEntity } from '../../hass';
+import { useEntity, useHass, getEntityDisplayState } from '../../hass';
 import { EntityDetailModal } from '../EntityDetailModal';
 
 interface Threshold {
@@ -31,15 +31,17 @@ function evaluateStatus(value: number, t?: Threshold): TileStatus {
 
 export const ValueTile: FC<ValueTileProps> = ({ entityId, label, icon, precision, thresholds }) => {
   const entity = useEntity(entityId);
+  const store = useHass();
   const [open, setOpen] = useState(false);
   const friendly =
     label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
-  if (!entity) {
+  const missing = getEntityDisplayState(entityId, entity, store);
+  if (missing.kind !== 'live-ok' || !entity) {
     return (
-      <BaseTile label={friendly} status="stale" icon={icon} pill="unavail">
+      <BaseTile label={friendly} status={missing.kind === 'live-unavailable' ? 'stale' : 'idle'} icon={icon} pill={missing.pill}>
         <div className="value-tile__row">
-          <span className="value-tile__num">n/a</span>
+          <span className="value-tile__num value-tile__num--missing">{missing.text}</span>
         </div>
       </BaseTile>
     );

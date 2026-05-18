@@ -3,3 +3,4 @@ export { createMockStore } from './MockHass';
 export { HassProvider, useHass } from './HassProvider';
 export { useEntity } from './useEntity';
 export { useHistory } from './useHistory';
+export { getEntityDisplayState, type EntityDisplayKind, type EntityDisplayState } from './entityDisplayState';

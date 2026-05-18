@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from 'react';
 import { BaseTile, type TileStatus } from './BaseTile';
-import { useEntity } from '../../hass';
+import { useEntity, useHass, getEntityDisplayState } from '../../hass';
 
 interface StatusMapping {
   text: string;
@@ -23,13 +23,15 @@ const DEFAULT_STATES: Required<NonNullable<StatusTileProps['states']>> = {
 
 export const StatusTile: FC<StatusTileProps> = ({ entityId, label, icon, states = DEFAULT_STATES }) => {
   const entity = useEntity(entityId);
+  const store = useHass();
   const friendly =
     label ?? (entity?.attributes.friendly_name as string | undefined) ?? entityId;
 
-  if (!entity) {
+  const missing = getEntityDisplayState(entityId, entity, store);
+  if (missing.kind !== 'live-ok' || !entity) {
     return (
-      <BaseTile label={friendly} status="stale" icon={icon} pill="unavail">
-        <div className="status-tile__state status-tile__state--idle">n/a</div>
+      <BaseTile label={friendly} status={missing.kind === 'live-unavailable' ? 'stale' : 'idle'} icon={icon} pill={missing.pill}>
+        <div className="status-tile__state status-tile__state--idle">{missing.text}</div>
       </BaseTile>
     );
   }

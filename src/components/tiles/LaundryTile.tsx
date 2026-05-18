@@ -1,5 +1,6 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile } from './BaseTile';
+import { TileModal } from './TileModal';
 import { useEntity } from '../../hass';
 
 interface ExtraEntity {
@@ -67,11 +68,96 @@ const ApplianceCell: FC<{ entityId: string; kind: 'WASHER' | 'DRYER'; extras: Ex
 export const LaundryTile: FC<LaundryTileProps> = ({
   label = 'LAUNDRY', icon, washerEntityId, dryerEntityId,
   washerExtras = [], dryerExtras = [],
-}) => (
-  <BaseTile label={label} icon={icon}>
-    <div className="laundry-tile">
-      <ApplianceCell entityId={washerEntityId} kind="WASHER" extras={washerExtras} />
-      <ApplianceCell entityId={dryerEntityId} kind="DRYER" extras={dryerExtras} />
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <BaseTile label={label} icon={icon} onClick={() => setOpen(true)}>
+        <div className="laundry-tile">
+          <ApplianceCell entityId={washerEntityId} kind="WASHER" extras={washerExtras} />
+          <ApplianceCell entityId={dryerEntityId} kind="DRYER" extras={dryerExtras} />
+        </div>
+      </BaseTile>
+      {open && (
+        <LaundryModal
+          title={label}
+          washerEntityId={washerEntityId}
+          dryerEntityId={dryerEntityId}
+          washerExtras={washerExtras}
+          dryerExtras={dryerExtras}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+};
+
+interface LaundryModalProps {
+  title: string;
+  washerEntityId: string;
+  dryerEntityId: string;
+  washerExtras: ExtraEntity[];
+  dryerExtras: ExtraEntity[];
+  onClose: () => void;
+}
+
+// Side-by-side appliance summary: state pill, mode/cycle, remaining time,
+// then a stacked list of configured extras (door, power, etc.). Data-forward;
+// no spinning animations needed at this size.
+const LaundryModal: FC<LaundryModalProps> = ({ title, washerEntityId, dryerEntityId, washerExtras, dryerExtras, onClose }) => (
+  <TileModal title={title} subtitle="Washer & Dryer" onClose={onClose} size="lg">
+    <div className="laundry-modal">
+      <ApplianceDetail entityId={washerEntityId} kind="WASHER" extras={washerExtras} />
+      <ApplianceDetail entityId={dryerEntityId} kind="DRYER" extras={dryerExtras} />
     </div>
-  </BaseTile>
+  </TileModal>
 );
+
+const ApplianceDetail: FC<{ entityId: string; kind: 'WASHER' | 'DRYER'; extras: ExtraEntity[] }> = ({ entityId, kind, extras }) => {
+  const entity = useEntity(entityId);
+  if (!entity) {
+    return (
+      <div className="laundry-modal__cell">
+        <div className="laundry-modal__kind">{kind}</div>
+        <div className="laundry-modal__empty">Entity unavailable.</div>
+      </div>
+    );
+  }
+  const state = entity.state;
+  const isActive = state === 'running' || state === 'active' || state === 'on';
+  const cycle = (entity.attributes.cycle as string | undefined) ?? '—';
+  const remaining = (entity.attributes.time_remaining as string | undefined) ?? '0:00';
+  return (
+    <div className={`laundry-modal__cell${isActive ? ' laundry-modal__cell--active' : ''}`}>
+      <div className="laundry-modal__head">
+        <span className="laundry-modal__kind">{kind}</span>
+        <span className={`laundry-modal__state${isActive ? ' laundry-modal__state--active' : ''}`}>{state.toUpperCase()}</span>
+      </div>
+      <div className="laundry-modal__metrics">
+        <div className="laundry-modal__metric">
+          <span className="laundry-modal__metric-label">CYCLE</span>
+          <span className="laundry-modal__metric-value">{cycle}</span>
+        </div>
+        <div className="laundry-modal__metric">
+          <span className="laundry-modal__metric-label">REMAINING</span>
+          <span className="laundry-modal__metric-value">{isActive ? remaining : '—'}</span>
+        </div>
+      </div>
+      {extras.length > 0 && (
+        <div className="laundry-modal__extras">
+          {extras.map((x, i) => <ExtraDetail key={i} {...x} />)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ExtraDetail: FC<ExtraEntity> = ({ label, entityId }) => {
+  const e = useEntity(entityId);
+  return (
+    <div className="laundry-modal__extra">
+      <span className="laundry-modal__extra-label">{label}</span>
+      <span className="laundry-modal__extra-value">{e ? e.state : '—'}</span>
+    </div>
+  );
+};

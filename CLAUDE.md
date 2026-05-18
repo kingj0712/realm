@@ -67,10 +67,24 @@ After the first deploy, HA needs a full restart (not just YAML reload) for `pane
 ## Phases
 
 - **Phase 1 to 13 (done):** scaffold + 60 tile types + iOS-style RGL grid + multi-tab system + alarm chips + edit-mode inspector/palette/duplicate/resize + ECharts plot + homestead-hq digest fetch + **detail modals wired on 18 tile types** + **Welcome + sample dashboard library** + **inline tab rename + EntityPicker for alarms + keyboard shortcuts** + **live HA entity overlay/service routing/history** + **layout export/import snapshots**.
-- **Phase 14+ (next, in priority order):**
-  1. Entity remapping helper for bulk swapping demo entity IDs to real HA entity IDs.
-  2. Custom detail modals for Sankey, Laundry, ClimateThermostat, Vehicle, and Homelab.
+- **Phase 14 (done — fork-and-customize pivot):** entity remapping helper (REMAP button), Build-from-HA starter (BUILD FROM HA button), named layout snapshots (SNAPSHOTS button), service-call toast feedback (`HassStore.subscribeServiceEvents` + `ToastHost`), per-tile error boundaries, custom modals for ClimateThermostat / Laundry / Vehicle / Sankey / Homelab, standardized missing-entity states (`UNMAPPED` vs `UNAVAILABLE`), command-safety `ConfirmModal` wired to ButtonTile and VehicleTile remote start, EntityPicker domain + LIVE/DEMO chips, per-breakpoint layout scaffold (`LayoutItem.layouts`), deep-dive routes `/entity/:entityId` and `/room/:roomId`.
+- **Phase 15+ (next, in priority order):**
+  1. Per-breakpoint editing UI (advanced toggle in Inspector + per-tile reset-to-canonical).
+  2. Tile navigates to `/entity/:entityId` deep-dive instead of (or in addition to) opening a modal.
   3. Tab drag-reorder. `Cmd+D`/`Shift+D` duplicate-selected shortcut.
   4. Floorplans, `/realm#/floorplan/:floor` route with SVG exports from SweetHome3D + entity hotspots.
-  5. Per-breakpoint layouts so phone/tablet/desktop can differ.
-  6. Theme picker and custom CSS hook.
+  5. Theme picker (density/accent/palette/reduced-motion) — plan in WIKI section 10.6.
+  6. Tile flash on service-call success/error (round-14 toast covers the primary case; tile-level flash is the polish slice).
+  7. Statistics/long-term history for live entities (today's history/period call is short-range only).
+
+## Key flows added in Phase 14 (cheat sheet)
+
+- **REMAP**: `src/edit/RemapEntitiesModal.tsx`, helpers in `src/edit/entityRemap.ts`. Walks active-tab tile props via `findEntityIds` + `replaceEntityIds` (structured recursion, never string-replace). Domain-restricts the per-row EntityPicker.
+- **BUILD FROM HA**: `src/edit/StarterFromLiveModal.tsx`, builder in `src/edit/starterFromLive.ts`. Domain-by-domain scan, capped per domain, conservative tile-type picks. Preview-before-add (user can uncheck rows).
+- **SNAPSHOTS**: `src/edit/SnapshotsModal.tsx`. localStorage key `realm:layout:snapshots`. API on `useLayout()`: `saveSnapshot/restoreSnapshot/renameSnapshot/deleteSnapshot/exportSnapshot/snapshots`.
+- **Toasts**: `src/components/ToastHost.tsx`, store side in `HassStore.subscribeServiceEvents`. Every `callService` emits one `{ type: 'success'|'error'|'no-handler', domain, service, entityIds, source, message? }` event.
+- **TileErrorBoundary**: `src/components/TileErrorBoundary.tsx`. Wraps each tile render in `Overview.tsx`. Edit mode adds Edit Props / Delete actions.
+- **getEntityDisplayState**: `src/hass/entityDisplayState.ts`. Use this in tiles instead of inlining `if (!entity)` blocks. Returns `kind`, `pill`, `text`, `source`.
+- **ConfirmModal**: `src/components/ConfirmModal.tsx`. Shadow-root-friendly replacement for `window.confirm`. Wired into ButtonTile via `confirmBeforeAction`/`confirmMessage` props; VehicleTile remote start always confirms.
+- **Per-breakpoint layouts**: optional `LayoutItem.layouts?: Partial<Record<'lg'|'md'|'sm'|'xs', {x,y,w,h}>>`. `Overview` falls back to canonical x/y/w/h when a breakpoint slot is missing.
+- **Deep-dive routes**: `src/pages/EntityDetail.tsx` (`/entity/:entityId`) and `src/pages/RoomDetail.tsx` (`/room/:roomId`). Tiles still open modals on click; switching modal-vs-route is a future slice.

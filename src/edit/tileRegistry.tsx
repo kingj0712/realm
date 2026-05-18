@@ -117,8 +117,15 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
       buttonText: { kind: 'string', label: 'Button text', optional: true },
       service: { kind: 'json', label: 'Service override', optional: true, hint: '{ "domain":"cover", "service":"toggle" }' },
       states: { kind: 'json', label: 'States map', optional: true },
+      confirmBeforeAction: { kind: 'boolean', label: 'Confirm before action', optional: true },
+      confirmMessage: { kind: 'string', label: 'Confirm message', optional: true },
     },
-    render: (p) => <ButtonTile entityId={p.entityId as string} label={p.label as string | undefined} icon={iconEl(p.icon)} buttonText={p.buttonText as string | undefined} service={p.service as never} states={p.states as never} />,
+    render: (p) => <ButtonTile
+      entityId={p.entityId as string} label={p.label as string | undefined} icon={iconEl(p.icon)}
+      buttonText={p.buttonText as string | undefined} service={p.service as never} states={p.states as never}
+      confirmBeforeAction={p.confirmBeforeAction as boolean | undefined}
+      confirmMessage={p.confirmMessage as string | undefined}
+    />,
   },
   {
     type: 'SetpointTile', name: 'Setpoint', category: 'Control',
@@ -658,6 +665,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
       showPresetButtons: { kind: 'boolean', label: 'Show preset buttons', optional: true },
       showHumidity:      { kind: 'boolean', label: 'Show humidity',       optional: true },
       showAction:        { kind: 'boolean', label: 'Show action pill',    optional: true },
+      temperatureHistoryEntityId: { kind: 'entity', label: 'Temp history sensor (for modal chart)', optional: true, domains: ['sensor'] },
     },
     render: (p) => <ClimateThermostatTile
       entityId={p.entityId as string} label={p.label as string | undefined} icon={iconEl(p.icon)}
@@ -666,6 +674,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
       showPresetButtons={p.showPresetButtons as boolean | undefined}
       showHumidity={p.showHumidity as boolean | undefined}
       showAction={p.showAction as boolean | undefined}
+      temperatureHistoryEntityId={p.temperatureHistoryEntityId as string | undefined}
     />,
   },
   {
@@ -880,7 +889,7 @@ export const TILE_REGISTRY: TileRegistryEntry[] = [
     schema: {
       label: { kind: 'string', label: 'Label' },
       icon: { kind: 'icon', label: 'Icon', optional: true },
-      hosts: { kind: 'json', label: 'Hosts', hint: '[{ "name":"HA", "cpuEntityId":"sensor.ha_cpu", "memoryEntityId":"sensor.ha_memory" }]' },
+      hosts: { kind: 'json', label: 'Hosts', hint: '[{ "name":"HA", "cpuEntityId":"sensor.ha_cpu", "memoryEntityId":"sensor.ha_memory", "diskEntityId":"sensor.ha_disk", "uptimeEntityId":"sensor.ha_uptime", "statusEntityId":"binary_sensor.ha_up" }]' },
     },
     render: (p) => <HomelabTile label={p.label as string} icon={iconEl(p.icon)} hosts={p.hosts as never} />,
   },

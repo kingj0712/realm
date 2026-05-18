@@ -13,8 +13,9 @@ import {
 const fixedSlotCompactor = { ...noCompactor, preventCollision: true };
 import {
   useLayout, Inspector, Palette, EditModeBanner, TabBar, AlarmChips, AlarmsConfig,
-  SampleBrowser, TILE_BY_TYPE,
+  SampleBrowser, RemapEntitiesModal, SnapshotsModal, StarterFromLiveModal, TILE_BY_TYPE,
 } from '../edit';
+import { TileErrorBoundary } from '../components/TileErrorBoundary';
 
 const BREAKPOINTS = { lg: 1024, md: 768, sm: 480, xs: 0 };
 const COLS = { lg: 12, md: 8, sm: 6, xs: 4 };
@@ -38,14 +39,32 @@ export const Overview: FC = () => {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [alarmsConfigOpen, setAlarmsConfigOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [remapOpen, setRemapOpen] = useState(false);
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
+  const [starterOpen, setStarterOpen] = useState(false);
   const { width, containerRef, mounted } = useContainerWidth();
 
   const items = activeTab.items;
 
-  const rglLayout = useMemo<Layout>(
-    () => items.map((it) => ({ i: it.id, x: it.x, y: it.y, w: it.w, h: it.h })),
-    [items],
-  );
+  // Per-breakpoint layouts (Phase 14, scaffold only): if a tile has a `layouts`
+  // map and the breakpoint key is present, use that slot. Otherwise fall back
+  // to the canonical x/y/w/h. Editing still writes to canonical for now —
+  // future "advanced edit per breakpoint" UI will populate the layouts map.
+  const buildLayout = (bp: 'lg' | 'md' | 'sm' | 'xs'): Layout =>
+    items.map((it) => {
+      const slot = it.layouts?.[bp];
+      return slot
+        ? { i: it.id, x: slot.x, y: slot.y, w: slot.w, h: slot.h }
+        : { i: it.id, x: it.x, y: it.y, w: it.w, h: it.h };
+    });
+
+  const rglLayouts = useMemo(() => ({
+    lg: buildLayout('lg'),
+    md: buildLayout('md'),
+    sm: buildLayout('sm'),
+    xs: buildLayout('xs'),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [items]);
 
   const handleLayoutChange = (next: Layout) => {
     const idToNext = new Map(next.map((n) => [n.i, n] as const));
@@ -95,17 +114,23 @@ export const Overview: FC = () => {
         onAddTile={() => setPaletteOpen(true)}
         onConfigureAlarms={() => setAlarmsConfigOpen(true)}
         onOpenTemplates={() => setTemplatesOpen(true)}
+        onOpenRemap={() => setRemapOpen(true)}
+        onOpenSnapshots={() => setSnapshotsOpen(true)}
+        onBuildFromHA={() => setStarterOpen(true)}
       />
       <Palette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <AlarmsConfig open={alarmsConfigOpen} onClose={() => setAlarmsConfigOpen(false)} />
       <SampleBrowser open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
+      <RemapEntitiesModal open={remapOpen} onClose={() => setRemapOpen(false)} />
+      <SnapshotsModal open={snapshotsOpen} onClose={() => setSnapshotsOpen(false)} />
+      <StarterFromLiveModal open={starterOpen} onClose={() => setStarterOpen(false)} />
 
       <div ref={containerRef} className="overview-grid-container">
         {mounted && (
           <ResponsiveGridLayout
             className="overview-grid"
             width={width}
-            layouts={{ lg: rglLayout, md: rglLayout, sm: rglLayout, xs: rglLayout }}
+            layouts={rglLayouts}
             breakpoints={BREAKPOINTS}
             cols={COLS}
             rowHeight={20}
@@ -126,7 +151,18 @@ export const Overview: FC = () => {
               ].filter(Boolean).join(' ');
               return (
                 <div key={item.id} className={wrapperClass}>
-                  {meta ? meta.render(item.props) : <div className="editable-tile--missing">Unknown: {item.type}</div>}
+                  {meta ? (
+                    <TileErrorBoundary
+                      tileType={item.type}
+                      isEditing={isEditing}
+                      onSelect={() => selectTile(item.id)}
+                      onDelete={() => removeTile(item.id)}
+                    >
+                      {meta.render(item.props)}
+                    </TileErrorBoundary>
+                  ) : (
+                    <div className="editable-tile--missing">Unknown: {item.type}</div>
+                  )}
                   {isEditing && (
                     <div className="editable-tile__overlay" onClick={(e) => { e.stopPropagation(); selectTile(item.id); }}>
                       <div className="editable-tile__overlay-top">

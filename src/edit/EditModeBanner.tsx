@@ -5,9 +5,12 @@ interface EditModeBannerProps {
   onAddTile: () => void;
   onConfigureAlarms: () => void;
   onOpenTemplates: () => void;
+  onOpenRemap: () => void;
+  onOpenSnapshots: () => void;
+  onBuildFromHA: () => void;
 }
 
-export const EditModeBanner: FC<EditModeBannerProps> = ({ onAddTile, onConfigureAlarms, onOpenTemplates }) => {
+export const EditModeBanner: FC<EditModeBannerProps> = ({ onAddTile, onConfigureAlarms, onOpenTemplates, onOpenRemap, onOpenSnapshots, onBuildFromHA }) => {
   const { isEditing, setEditing, resetLayout, exportLayout, importLayout } = useLayout();
   const fileInputRef = useRef<HTMLInputElement>(null);
   if (!isEditing) return null;
@@ -48,7 +51,10 @@ export const EditModeBanner: FC<EditModeBannerProps> = ({ onAddTile, onConfigure
       <div className="edit-banner__actions">
         <button type="button" className="edit-banner__btn edit-banner__btn--primary" onClick={onAddTile}>+ ADD TILE</button>
         <button type="button" className="edit-banner__btn" onClick={onOpenTemplates}>TEMPLATES</button>
+        <button type="button" className="edit-banner__btn" onClick={onBuildFromHA}>BUILD FROM HA</button>
+        <button type="button" className="edit-banner__btn" onClick={onOpenRemap}>REMAP</button>
         <button type="button" className="edit-banner__btn" onClick={onConfigureAlarms}>ALARMS</button>
+        <button type="button" className="edit-banner__btn" onClick={onOpenSnapshots}>SNAPSHOTS</button>
         <button type="button" className="edit-banner__btn" onClick={onExport}>EXPORT</button>
         <button type="button" className="edit-banner__btn" onClick={() => fileInputRef.current?.click()}>IMPORT</button>
         <button type="button" className="edit-banner__btn" onClick={onReset}>RESET</button>

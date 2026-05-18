@@ -37,27 +37,33 @@ Realm should be **the easiest HA dashboard to customize and the most fun to use*
 - [x] **Generic defaults** — done in round 12. Demo people now use `person.user_1` / `person.user_2` style IDs instead of author-specific examples.
 - [x] **Sample dashboard library** — done in round 10. `src/edit/sampleLayouts.ts` exports four samples (Welcome, Smart Home Starter, Homestead Ops, Showcase) wired into a TEMPLATES button in the edit banner. Each loads as a new tab.
 - [x] **Deploy target configuration** — done in v0.9.1: `REALM_DEPLOY_TARGET` env var overrides the hardcoded HA share path.
-- [ ] **Onboarding flow** — first-run wizard that asks "scan my HA entities and build a starter layout?" vs. "give me the demo." Welcome layout from round 10 covers the static side; live-entity scan is still future work.
-- [ ] **Entity remapping helper** — bulk find/replace across a tab when the user wants to swap demo entities for their own.
+- [x] **Entity remapping helper** — done in round 14. Edit-mode REMAP button opens a modal that scans the active tab, lists every DEMO entity in use, and bulk-swaps to user-picked LIVE entities. See `src/edit/RemapEntitiesModal.tsx` + `src/edit/entityRemap.ts`.
+- [x] **Build from my HA starter** — done in round 14. Edit-mode BUILD FROM HA button scans live entities by domain and offers a preview-before-add starter tab. `src/edit/StarterFromLiveModal.tsx`.
+- [ ] **Onboarding flow** — first-run wizard that asks "scan my HA entities and build a starter layout?" vs. "give me the demo." Welcome layout from round 10 covers the static side; the BUILD FROM HA button is the manual entry point until we wrap it in a wizard.
 - [ ] **Setup docs** — a tutorial walking from `git clone` → live HA panel in 10 minutes.
 
 **Navigation polish:**
 - [x] Keyboard shortcuts — `E` toggle edit, `/` open palette (focuses its autoFocus search), `Esc` deselect selected tile. `⌘D` duplicate still pending.
 - [x] Inline tab rename instead of `window.prompt` — done in round 10.
+- [x] Deep-dive routes scaffolded — `/entity/:entityId` and `/room/:roomId` routes ship in round 14 with title/state/attributes/history. Tiles still open modals by default; switching modal-vs-route on tile click is incremental work.
 - [ ] Tab drag-reorder.
-- [ ] Per-tile click navigates to a deep-dive page (when one exists for the entity).
 
 **Intuitive UX:**
 - [x] Replace `window.prompt`/`confirm` in AlarmsConfig — done in round 10, now uses inline EntityPicker. Tab delete + Reset still use `window.confirm` for the dangerous-action acknowledgement (intentional).
-- [ ] Visual feedback when service calls succeed/fail (toast or tile flash).
+- [x] **Visual feedback for service calls** — done in round 14. `HassStore.subscribeServiceEvents()` emits success/error/no-handler events; `ToastHost` renders a SCADA-styled toast stack via `ModalPortal`. Bottom-right on desktop, bottom-center on mobile.
+- [x] **Tile error boundaries** — done in round 14. Each tile render is wrapped in `TileErrorBoundary`; a misconfigured tile shows an inline "Render error" placeholder with Retry/Edit Props/Delete actions instead of blanking the dashboard.
+- [x] **Confirm before consequential actions** — done in round 14. `ButtonTile` gains `confirmBeforeAction` + `confirmMessage` props; `VehicleTile` always confirms remote start. Uses a shadow-root-friendly `ConfirmModal` rather than `window.confirm`.
+- [x] **Standardized missing-entity states** — done in round 14. `getEntityDisplayState()` returns `UNMAPPED` for placeholders the user hasn't remapped, `UNAVAILABLE` for live HA entities in `unavailable`/`unknown`, and `NO ENTITY` for blank IDs. Wired into Value/Status/Gauge/Tank/Bar tiles.
 - [ ] Loading skeleton instead of empty tile while history fetches.
 - [ ] Drag preview that follows cursor with size badge (already partially done; polish).
 
 **Customizability:**
-- [ ] Per-breakpoint layouts (currently all breakpoints share the lg layout).
-- [ ] Theme picker — surface palette and accent color, not just the SCADA defaults.
+- [x] **Per-breakpoint layouts — scaffold landed in round 14.** `LayoutItem.layouts?: Partial<Record<Breakpoint, {x,y,w,h}>>` is now part of the schema. `Overview` reads per-breakpoint slots when present and falls back to canonical x/y/w/h otherwise. Editing still writes canonical; per-breakpoint editing UI is the next step (advanced mode toggle in Inspector).
+- [ ] Theme picker — surface palette and accent color, not just the SCADA defaults. See section 12.
 - [ ] Custom row height / column count per tab.
 - [x] Save layout snapshots — done in round 13 with edit-mode EXPORT / IMPORT JSON buttons.
+- [x] **Named local snapshots** — done in round 14. Edit-mode SNAPSHOTS button manages localStorage-backed snapshots (`realm:layout:snapshots`). Save / restore / rename / delete / export-as-JSON. Independent from the file EXPORT — both ship.
+- [x] **Entity picker improvements** — done in round 14. Domain chips + source filter (All / LIVE / DEMO). Live entities still sort first.
 - [ ] User-defined tile templates (save a configured tile as a reusable preset).
 - [ ] Custom CSS hook for power users.
 
@@ -320,7 +326,8 @@ Most recent first. Sections 9.1–9.5 below have round-specific detail.
 
 | Round | Headline shipped |
 |-------|------------------|
-| **13.1** (current) | **Modal regression fix**: hardened the modal portal by creating the shadow-root modal layer directly in `main.tsx`, and fixed `useHistory()` so async live-history loading does not churn modal renders. |
+| **14** (current) | **Fork-and-customize pivot**: edit-mode **REMAP** modal scans active-tab tile props for demo entity IDs and bulk-swaps to user-picked LIVE entities (`src/edit/RemapEntitiesModal.tsx` + `entityRemap.ts`). **BUILD FROM HA** offers a preview-before-add starter tab from live entities by domain. **SNAPSHOTS** modal manages named localStorage rollbacks alongside file EXPORT/IMPORT. **Service-call toasts** centralize feedback through a `HassStore.subscribeServiceEvents` emitter and a shadow-root `ToastHost`. **Per-tile error boundaries** prevent one bad tile from blanking the dashboard. **Standardized missing-entity states** (`UNMAPPED` vs `UNAVAILABLE` vs `NO ENTITY`). **Per-breakpoint layout types** + migration (UI for editing per breakpoint still pending). **Confirm before action** for ButtonTile + VehicleTile remote start, via a SCADA-styled `ConfirmModal`. **EntityPicker** gains domain + LIVE/DEMO chips. **Composite tile modals** for ClimateThermostat, Laundry, Vehicle, Sankey, Homelab. **Deep-dive routes** `/entity/:entityId` and `/room/:roomId` scaffolded. |
+| **13.1** | **Modal regression fix**: hardened the modal portal by creating the shadow-root modal layer directly in `main.tsx`, and fixed `useHistory()` so async live-history loading does not churn modal renders. |
 | **13** | **Live history + layout snapshots**: `HassStore` now supports async live history separately from generated demo history. `main.tsx` installs a live history provider using HA's `history/period` API when `hass.callApi` exists. Detail charts for live numeric entities can show real recent history. Edit mode now has EXPORT / IMPORT JSON buttons for full dashboard snapshots, with import validation and version normalization. |
 | **12** | **Stabilization / forkability pass**: removed duplicate `EntityDetailModal` component and stale `@dnd-kit` dependencies, tightened modal stacking with a dedicated shadow-root modal layer, labeled EntityPicker rows as LIVE/DEMO and made them easier to read, preserved demo-only service behavior while live HA is connected, genericized demo person entities, added detail modals for Calendar/Appliance/MultiMetric/AreaList, and synced docs to the round-11 live HA state. |
 | **11** | **Live HA entities**: `main.tsx` now consumes the `hass` property HA passes to the panel. `HassStore.syncFromLive()` overlays real entities on top of the mock store (live wins on entity-id collision; mock fills gaps). Service calls proxy to the live `hass.callService()` for live entities. Mock store remains for dev and demo-only tiles. **Modal portal**: all modals (`TileModal`, `Palette`, `SampleBrowser`, `AlarmsConfig`) render via `createPortal` into a sibling `<div id="realm-modal-root">` at shadow-root level so RGL's grid-item transforms can't trap them. **RGL `preventCollision: true`** on the noCompactor so dragging onto an occupied cell snaps back instead of cascading other tiles down. **Duplicate-tile button** moved to a right-side action cluster next to delete (was floating awkwardly between drag handle and X). **Entity picker font** enlarged + switched to sans-serif. **Detail modals** added on Network/Alarm/Heatmap/SpeedTest/NAS. |
@@ -386,6 +393,30 @@ Track decisions we've deferred and known issues.
 - **More tiles need detail modals:** Most single-entity visualization tiles are wired. Still candidate-for-custom-modal: SankeyTile, LaundryTile, ClimateThermostatTile, VehicleTile, HomelabTile, and other composites where a generic attributes table is too thin.
 
 ---
+
+## 10.5 Per-breakpoint layouts — schema & migration (round 14 scaffold)
+
+`LayoutItem` now carries an optional `layouts?: Partial<Record<Breakpoint, {x,y,w,h}>>` field where `Breakpoint = 'lg' | 'md' | 'sm' | 'xs'`. The canonical `x/y/w/h` on the item are still the fallback used when the active breakpoint has no override, so saved layouts written before this field existed Just Work.
+
+`Overview` builds four RGL layouts (one per breakpoint), preferring the matching `layouts[bp]` slot when present and falling back to canonical otherwise. The existing `onLayoutChange` still writes to canonical only; per-breakpoint editing UI (advanced toggle in Inspector, "Edit desktop/tablet/phone layout" buttons) lands in a future slice.
+
+**Migration:** none required. v5 layouts continue to load as v5. Tiles without `layouts` behave identically to before.
+
+**Future UI sketch:**
+- Default edit mode is "all breakpoints" — edits go to canonical, every breakpoint follows.
+- Advanced mode is "current breakpoint only" — edits write to `layouts[bp]`. Show a chip indicating which breakpoint is active.
+- Add "reset to canonical" per tile to drop a breakpoint override.
+
+## 10.6 Theme & density controls — planning (round 14 placeholder)
+
+Adding density/theme support is a tokens-layer change first, components-layer change second. Outline:
+
+- `:root` (or `.realm-density-comfortable`/`-compact`/`-large` on the shadow root container) toggles spacing/font-size tokens. `tokens.css` already centralizes these, so a single class flip rescales the whole UI.
+- Accent color is one CSS variable away (`--accent`, currently SCADA cyan). Surfacing it as a user choice means writing the value to localStorage and applying it to `realm-root` via inline style.
+- Chart palette: ECharts and the hand-rolled SVG bars both read from a small set of `--status-*` vars and per-tile color tokens. Centralize before exposing.
+- Reduced motion: respect `prefers-reduced-motion` first; layer a manual toggle on top.
+
+Default stays dense SCADA. Large mode is for tablet/wall-panel deployments. Reduced motion should quiet animations without removing state cues (alarm pulses, charging dot, drum spin).
 
 ## 11. Conventions
 

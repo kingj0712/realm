@@ -89,12 +89,9 @@ class RealmPanel extends HTMLElement {
       this.store.setLiveServiceHandler(async (domain, service, data, target) => {
         const hass = this._hass;
         if (!hass?.callService) return;
-        try {
-          await hass.callService(domain, service, data, target as object);
-        } catch (e) {
-          // Service errors shouldn't crash the dashboard.
-          console.warn('[realm] callService failed:', e);
-        }
+        // Let errors propagate so HassStore.callService can emit an
+        // error ServiceEvent; the global ToastHost surfaces them.
+        await hass.callService(domain, service, data, target as object);
       });
       this.liveHandlerInstalled = true;
     }

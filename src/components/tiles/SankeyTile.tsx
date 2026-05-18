@@ -1,5 +1,6 @@
-import type { FC, ReactNode } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { BaseTile } from './BaseTile';
+import { TileModal } from './TileModal';
 import { useEntity } from '../../hass';
 
 interface SankeyNode {
@@ -18,15 +19,23 @@ interface SankeyTileProps {
 // ribbon connects each source segment to each consumer segment. Width is
 // proportional to a (uniform) split — real per-device allocation would need
 // submetering from HA.
-export const SankeyTile: FC<SankeyTileProps> = ({ label = 'POWER FLOW', icon, sources, consumers }) => (
-  <BaseTile label={label} icon={icon}>
-    <div className="sankey-tile">
-      <svg className="sankey-tile__svg" viewBox="0 0 300 160" aria-hidden>
-        <SankeyContent sources={sources} consumers={consumers} />
-      </svg>
-    </div>
-  </BaseTile>
-);
+export const SankeyTile: FC<SankeyTileProps> = ({ label = 'POWER FLOW', icon, sources, consumers }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <BaseTile label={label} icon={icon} onClick={() => setOpen(true)}>
+        <div className="sankey-tile">
+          <svg className="sankey-tile__svg" viewBox="0 0 300 160" aria-hidden>
+            <SankeyContent sources={sources} consumers={consumers} />
+          </svg>
+        </div>
+      </BaseTile>
+      {open && (
+        <SankeyModal title={label} sources={sources} consumers={consumers} onClose={() => setOpen(false)} />
+      )}
+    </>
+  );
+};
 
 interface SankeyContentProps {
   sources: SankeyNode[];
@@ -110,3 +119,83 @@ const SankeyContent: FC<SankeyContentProps> = ({ sources, consumers }) => {
     </>
   );
 };
+
+interface SankeyModalProps {
+  title: string;
+  sources: SankeyNode[];
+  consumers: SankeyNode[];
+  onClose: () => void;
+}
+
+// Pulls live values for every node, totals each side, and renders two ordered
+// tables: sources (descending by current value) and consumers (same). Skips
+// the proportional ribbon view here; the tile already shows that and a table
+// is easier to read in a modal.
+const SankeyModal: FC<SankeyModalProps> = ({ title, sources, consumers, onClose }) => {
+  const srcRows = sources.map((s) => ({ node: s, ent: useEntity(s.entityId) }));
+  const conRows = consumers.map((c) => ({ node: c, ent: useEntity(c.entityId) }));
+
+  const srcVals = srcRows.map(({ node, ent }) => {
+    const v = ent ? Math.abs(parseFloat(ent.state)) : 0;
+    return { entityId: node.entityId, label: node.label, value: Number.isFinite(v) ? v : 0, unit: (ent?.attributes?.unit_of_measurement as string | undefined) ?? '' };
+  });
+  const conVals = conRows.map(({ node, ent }) => {
+    const v = ent ? Math.abs(parseFloat(ent.state)) : 0;
+    return { entityId: node.entityId, label: node.label, value: Number.isFinite(v) ? v : 0, unit: (ent?.attributes?.unit_of_measurement as string | undefined) ?? '' };
+  });
+  const srcTotal = srcVals.reduce((a, b) => a + b.value, 0);
+  const conTotal = conVals.reduce((a, b) => a + b.value, 0);
+  const srcSorted = [...srcVals].sort((a, b) => b.value - a.value);
+  const conSorted = [...conVals].sort((a, b) => b.value - a.value);
+
+  return (
+    <TileModal title={title} subtitle="Power flow breakdown" onClose={onClose} size="lg">
+      <div className="sankey-modal">
+        <div className="sankey-modal__totals">
+          <div className="sankey-modal__total">
+            <span className="sankey-modal__total-label">SOURCES TOTAL</span>
+            <span className="sankey-modal__total-value">{srcTotal.toFixed(1)}{srcVals[0]?.unit && ` ${srcVals[0].unit}`}</span>
+          </div>
+          <div className="sankey-modal__total">
+            <span className="sankey-modal__total-label">LOADS TOTAL</span>
+            <span className="sankey-modal__total-value">{conTotal.toFixed(1)}{conVals[0]?.unit && ` ${conVals[0].unit}`}</span>
+          </div>
+        </div>
+
+        <div className="sankey-modal__columns">
+          <div className="sankey-modal__column">
+            <div className="sankey-modal__column-head">SOURCES</div>
+            <SankeyRows rows={srcSorted} total={srcTotal} accent="info" />
+          </div>
+          <div className="sankey-modal__column">
+            <div className="sankey-modal__column-head">CONSUMERS</div>
+            <SankeyRows rows={conSorted} total={conTotal} accent="ok" />
+          </div>
+        </div>
+      </div>
+    </TileModal>
+  );
+};
+
+interface SankeyRow { entityId: string; label: string; value: number; unit: string }
+
+const SankeyRows: FC<{ rows: SankeyRow[]; total: number; accent: 'ok' | 'info' }> = ({ rows, total, accent }) => (
+  <div className="sankey-modal__rows">
+    {rows.map((r) => {
+      const pct = total > 0 ? (r.value / total) * 100 : 0;
+      return (
+        <div key={r.entityId} className="sankey-modal__row">
+          <div className="sankey-modal__row-head">
+            <span className="sankey-modal__row-label">{r.label}</span>
+            <span className="sankey-modal__row-value">{r.value.toFixed(1)} {r.unit}</span>
+          </div>
+          <div className="sankey-modal__bar">
+            <div className={`sankey-modal__bar-fill sankey-modal__bar-fill--${accent}`} style={{ width: `${Math.min(100, pct)}%` }} />
+          </div>
+          <div className="sankey-modal__row-pct">{pct.toFixed(1)}%</div>
+        </div>
+      );
+    })}
+    {rows.length === 0 && <div className="sankey-modal__empty">No nodes configured.</div>}
+  </div>
+);

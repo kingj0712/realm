@@ -15,7 +15,7 @@ The four pillars guiding every change:
 3. **Extremely customizable** — rich per-tile Inspector, themes, per-breakpoint layouts, tile templates.
 4. **Fun** — animations serve the data; personality tiles invited; tiles that delight.
 
-> **Current state:** Realm is actively evolving from "the author's personal dashboard" toward "fork-and-customize for anyone." Fresh installs now land on a **Welcome tab** with zero entity dependencies, plus a separate **Demo tab** showing every tile type. Use the **TEMPLATES** button in edit mode to drop in a Smart Home Starter / Homestead Ops / Showcase layout as a brand-new tab. To remap demo entities to yours, click the pencil → click any tile → change its Entity field. Roadmap in [`WIKI.md`](./WIKI.md) section 1.5.
+> **Current state (v0.14):** Realm is actively evolving from "the author's personal dashboard" toward "fork-and-customize for anyone." Fresh installs land on a **Welcome tab** with zero entity dependencies, plus a separate **Demo tab** showing every tile type. Edit mode now bundles four flows to make a dashboard yours: **TEMPLATES** drops in a Smart Home / Homestead / Showcase layout as a new tab, **BUILD FROM HA** scans your live entities and proposes a starter, **REMAP** bulk-swaps demo entity IDs to real HA entities across the active tab, and **SNAPSHOTS** keeps named rollbacks of any layout. Roadmap in [`WIKI.md`](./WIKI.md) section 1.5.
 
 ## What's in here
 
@@ -24,7 +24,11 @@ The four pillars guiding every change:
 - **Per-tab alarm chips** — a pulsing strip at the top of each tab showing whichever entities you've designated as alarm-watch.
 - **Live HA plus demo data store** that mirrors HA's `hass.states` shape. Inside Home Assistant, live entities overlay the demo pool and live service calls route to HA. In local dev, the same demo pool keeps every tile interactive.
 - **Live history for live entities** in detail charts, with generated demo history still available for demo-only entities.
-- **Layout export/import** from edit mode so dashboard snapshots can be backed up before layout experiments.
+- **Service-call feedback** — every command emits a success/error toast via the central `ToastHost`. Tiles don't have to do anything; flows like ButtonTile, VehicleTile remote start, etc. confirm consequential actions in a SCADA-styled modal.
+- **Entity remapping helper** — REMAP button bulk-swaps demo entity IDs on the active tab to real HA entities, filtering the picker by domain.
+- **Named local snapshots** + **file export/import** — both ship. Snapshots live in localStorage for quick "save before I experiment" rollbacks; file export is for sharing across devices.
+- **Per-tile error boundaries** — a misconfigured tile shows an inline "Render error" placeholder instead of blanking the dashboard.
+- **Deep-dive routes** at `/entity/:entityId` and `/room/:roomId` (scaffold; full per-entity history and controls land in a future round).
 - **Shadow DOM isolation** — Realm fully owns its styling and doesn't leak into HA's chrome.
 - **60+ tile types** covering most home-automation use cases. See `WIKI.md` section 3 for the full catalog.
 
@@ -85,7 +89,7 @@ Realm ships with a companion HA theme (`themes/realm_dark.yaml` in the author's 
 
 ## Status
 
-Active development. The author posts incremental rounds of work. See `WIKI.md` section 9.0 for the changelog. Recent rounds (7 to 13.1): react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, detail modals, first-run Welcome layout, sample dashboard library, live HA entity overlay, modal portal fixes, live/demo entity picker labels, live HA history, and layout export/import.
+Active development. The author posts incremental rounds of work. See `WIKI.md` section 9.0 for the changelog. Recent rounds (7 to 14): react-grid-layout v2, multi-tab system, alarm chips, Inspector readability pass, ECharts plots, detail modals, first-run Welcome layout, sample dashboard library, live HA entity overlay, modal portal fixes, live/demo entity picker labels, live HA history, layout export/import, and the round-14 fork-and-customize pivot (REMAP, BUILD FROM HA, SNAPSHOTS, service toasts, error boundaries, composite modals, command-safety confirmations, per-breakpoint layout scaffold, deep-dive routes).
 
 ## Keyboard shortcuts
 
@@ -97,12 +101,12 @@ Shortcuts are skipped while typing in any input.
 
 ## Not done yet
 
-- More tiles deserve custom detail modals, especially Sankey, MultiMetric, AreaList, Calendar, and appliance-style tiles.
-- Entity remapping helper for bulk swapping demo IDs to real HA IDs.
+- More tiles deserve custom detail modals, especially MultiMetric, AreaList, and appliance-style tiles (ClimateThermostat, Laundry, Vehicle, Sankey, Homelab shipped in v0.14).
+- Per-breakpoint editing UI — the data model is in place (`LayoutItem.layouts`) but Inspector still edits canonical only.
+- Tile clicks navigating to `/entity/:entityId` deep-dive routes instead of modals (routes exist; switchover is incremental).
 - Tab drag-to-reorder.
 - Floorplans route.
-- Per-breakpoint layouts (currently all breakpoints share the lg layout).
-- Theme picker / custom CSS hook.
+- Theme picker (density / accent / palette / reduced motion — plan in `WIKI.md` section 10.6).
 
 See `WIKI.md` section 10 for the full open-questions list.
 

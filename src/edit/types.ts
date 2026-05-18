@@ -2,16 +2,34 @@
 // can persist to localStorage (or HA frontend.set_user_data later) and be
 // re-rendered from config alone.
 
-export interface LayoutItem {
-  id: string;
-  type: string;
-  // iOS-style explicit grid coordinates. (x, y) is the top-left cell; (w, h)
-  // is the span in cells. Stored in the "lg" (12-col) layout; RGL handles
-  // smaller breakpoints. Maps directly to react-grid-layout's { i, x, y, w, h }.
+// Breakpoint keys mirror Overview's RGL breakpoints. Keep this in sync with
+// BREAKPOINTS/COLS in src/pages/Overview.tsx — values are not stored here
+// because RGL needs them at render time, not in saved layouts.
+export type Breakpoint = 'lg' | 'md' | 'sm' | 'xs';
+
+export interface BreakpointSlot {
   x: number;
   y: number;
   w: number;
   h: number;
+}
+
+export interface LayoutItem {
+  id: string;
+  type: string;
+  // iOS-style explicit grid coordinates. (x, y) is the top-left cell; (w, h)
+  // is the span in cells. These act as the canonical fallback and are what
+  // gets edited in "all breakpoints" mode (the default).
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  // Optional per-breakpoint overrides. When the active breakpoint has a
+  // matching slot, RGL uses it; otherwise the canonical x/y/w/h above apply.
+  // Layouts written before this field existed simply omit it and behave as
+  // they always did. Editing in "current breakpoint only" mode (future UI)
+  // will populate the matching slot here.
+  layouts?: Partial<Record<Breakpoint, BreakpointSlot>>;
   // Legacy aliases (still readable from old saved configs during transition,
   // but new code uses w/h above).
   colSpan?: number;

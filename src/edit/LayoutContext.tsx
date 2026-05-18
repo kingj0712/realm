@@ -8,6 +8,7 @@ import { welcomeLayout, showcaseLayout } from './sampleLayouts';
 import { uid } from '../hass/uid';
 
 const STORAGE_KEY = 'realm:layout:overview';
+const SNAPSHOT_KEY = 'realm:layout:snapshots';
 // v5: new installs ship with 2 tabs (Welcome + Demo). v4 layouts preserved
 // as-is; v3 (single items array) auto-migrates into one tab.
 const LAYOUT_VERSION = 5;
@@ -23,6 +24,13 @@ interface DashboardState {
   version: number;
   tabs: Tab[];
   activeTabId: string;
+}
+
+export interface LayoutSnapshot {
+  id: string;
+  name: string;
+  createdAt: string;
+  state: DashboardState;
 }
 
 interface LayoutContextValue {
@@ -49,6 +57,13 @@ interface LayoutContextValue {
   exportLayout: () => string;
   importLayout: (raw: string) => void;
   resetLayout: () => void;
+  // Named local snapshots. Independent of the file export/import flow.
+  snapshots: LayoutSnapshot[];
+  saveSnapshot: (name: string) => LayoutSnapshot;
+  restoreSnapshot: (id: string) => void;
+  renameSnapshot: (id: string, name: string) => void;
+  deleteSnapshot: (id: string) => void;
+  exportSnapshot: (id: string) => string | null;
 }
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
@@ -87,6 +102,31 @@ function saveState(state: DashboardState): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // non-fatal
+  }
+}
+
+function loadSnapshots(): LayoutSnapshot[] {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Light validation. We don't deep-validate state here; restoreSnapshot
+    // re-parses on the way out so a corrupt snapshot fails loudly only when
+    // the user actually tries to restore it.
+    return parsed.filter((s): s is LayoutSnapshot =>
+      !!s && typeof s.id === 'string' && typeof s.name === 'string' && typeof s.createdAt === 'string' && !!s.state,
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveSnapshots(snapshots: LayoutSnapshot[]): void {
+  try {
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshots));
+  } catch {
+    // non-fatal — typically quota exceeded.
   }
 }
 
@@ -130,10 +170,12 @@ function parseImport(raw: string): DashboardState {
 
 export const LayoutProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<DashboardState>(() => loadState());
+  const [snapshots, setSnapshots] = useState<LayoutSnapshot[]>(() => loadSnapshots());
   const [isEditing, setIsEditing] = useState(false);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
 
   useEffect(() => { saveState(state); }, [state]);
+  useEffect(() => { saveSnapshots(snapshots); }, [snapshots]);
 
   // Helper: update items of the active tab via a transformer.
   const updateActiveItems = useCallback(
@@ -267,6 +309,44 @@ export const LayoutProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setSelectedTileId(null);
   }, []);
 
+  // ---- Named snapshots -------------------------------------------------
+  const saveSnapshot = useCallback((name: string): LayoutSnapshot => {
+    const snapshot: LayoutSnapshot = {
+      id: uid(),
+      name: name.trim() || `Snapshot ${new Date().toLocaleString()}`,
+      createdAt: new Date().toISOString(),
+      state: structuredClone(state),
+    };
+    setSnapshots((prev) => [snapshot, ...prev]);
+    return snapshot;
+  }, [state]);
+
+  const restoreSnapshot = useCallback((id: string) => {
+    setSnapshots((prev) => {
+      const snap = prev.find((s) => s.id === id);
+      if (snap) {
+        // Re-clone so future edits don't mutate the stored snapshot.
+        setState({ ...structuredClone(snap.state), version: LAYOUT_VERSION });
+        setSelectedTileId(null);
+      }
+      return prev;
+    });
+  }, []);
+
+  const renameSnapshot = useCallback((id: string, name: string) => {
+    setSnapshots((prev) => prev.map((s) => (s.id === id ? { ...s, name } : s)));
+  }, []);
+
+  const deleteSnapshot = useCallback((id: string) => {
+    setSnapshots((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const exportSnapshot = useCallback((id: string): string | null => {
+    const snap = snapshots.find((s) => s.id === id);
+    if (!snap) return null;
+    return JSON.stringify({ ...snap.state, version: LAYOUT_VERSION }, null, 2);
+  }, [snapshots]);
+
   const activeTab = useMemo(
     () => state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0],
     [state.tabs, state.activeTabId],
@@ -287,11 +367,14 @@ export const LayoutProvider: FC<{ children: ReactNode }> = ({ children }) => {
       exportLayout,
       importLayout,
       resetLayout,
+      snapshots,
+      saveSnapshot, restoreSnapshot, renameSnapshot, deleteSnapshot, exportSnapshot,
     }),
     [state.tabs, state.activeTabId, activeTab, isEditing, selectedTileId,
      addTab, addTabWithLayout, renameTab, deleteTab, switchTab,
      addTile, removeTile, duplicateTile, updateTile, reorderTiles,
-     setActiveTabAlarmEntities, exportLayout, importLayout, resetLayout],
+     setActiveTabAlarmEntities, exportLayout, importLayout, resetLayout,
+     snapshots, saveSnapshot, restoreSnapshot, renameSnapshot, deleteSnapshot, exportSnapshot],
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;

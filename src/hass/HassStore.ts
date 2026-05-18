@@ -10,6 +10,21 @@ type ServiceHandler = (
 ) => Promise<void> | void;
 type HistoryProvider = (entityId: string, points: number) => number[] | Promise<number[]>;
 
+// Result event surfaced by every callService() round-trip. Subscribers (e.g.
+// the global ToastHost) render UI feedback without each tile needing its own
+// toast logic. `source` is whichever handler actually ran; `entityIds` is the
+// list resolved from the target (may be empty for broadcast services).
+export interface ServiceEvent {
+  type: 'success' | 'error' | 'no-handler';
+  domain: string;
+  service: string;
+  entityIds: string[];
+  source: 'live' | 'demo' | 'none';
+  message?: string;
+  error?: unknown;
+}
+type ServiceListener = (event: ServiceEvent) => void;
+
 function getTargetEntityIds(target?: ServiceTarget): string[] {
   const entityId = target?.entity_id;
   if (Array.isArray(entityId)) return entityId;
@@ -33,6 +48,7 @@ export class HassStore {
   private historyProvider: HistoryProvider | null = null;
   private liveHistoryProvider: HistoryProvider | null = null;
   private historyCache = new Map<string, number[]>();
+  private serviceListeners = new Set<ServiceListener>();
 
   constructor(initialStates: Record<string, HassEntity> = {}) {
     this.states = { ...initialStates };
@@ -100,6 +116,17 @@ export class HassStore {
     this.liveServiceHandler = handler;
   }
 
+  subscribeServiceEvents(listener: ServiceListener): () => void {
+    this.serviceListeners.add(listener);
+    return () => { this.serviceListeners.delete(listener); };
+  }
+
+  private emitServiceEvent(event: ServiceEvent): void {
+    this.serviceListeners.forEach((l) => {
+      try { l(event); } catch (e) { console.warn('[realm] service listener threw:', e); }
+    });
+  }
+
   async callService(
     domain: string,
     service: string,
@@ -109,8 +136,34 @@ export class HassStore {
     const targetedIds = getTargetEntityIds(target);
     const shouldUseLive = targetedIds.length > 0 && targetedIds.some((id) => this.isLiveEntity(id));
     const handler = shouldUseLive ? this.liveServiceHandler : this.serviceHandler;
-    if (handler) {
+    if (!handler) {
+      this.emitServiceEvent({
+        type: 'no-handler',
+        domain, service,
+        entityIds: targetedIds,
+        source: 'none',
+        message: 'No service handler registered',
+      });
+      return;
+    }
+    try {
       await handler(domain, service, serviceData, target);
+      this.emitServiceEvent({
+        type: 'success',
+        domain, service,
+        entityIds: targetedIds,
+        source: shouldUseLive ? 'live' : 'demo',
+      });
+    } catch (e) {
+      this.emitServiceEvent({
+        type: 'error',
+        domain, service,
+        entityIds: targetedIds,
+        source: shouldUseLive ? 'live' : 'demo',
+        error: e,
+        message: e instanceof Error ? e.message : String(e),
+      });
+      console.warn('[realm] callService failed:', domain, service, e);
     }
   }
 
